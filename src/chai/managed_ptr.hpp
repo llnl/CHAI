@@ -1046,10 +1046,11 @@ namespace chai {
             m_cpu_allocator_id = arrayManager->getAllocatorId(CPU);
             auto cpuAllocator = arrayManager->getAllocator(m_cpu_allocator_id);
             m_cpu_pointers = static_cast<T**>(cpuAllocator.allocate(m_size * sizeof(T*)));
+            chai::managed_ptr<T>* hostManagedPointers = managedPointers.data();
 
             using pointer_type = T*;
             for (size_t index = 0; index < m_size; ++index) {
-               ::new (static_cast<void*>(m_cpu_pointers + index)) pointer_type(managedPointers[index].get(CPU));
+               ::new (static_cast<void*>(m_cpu_pointers + index)) pointer_type(hostManagedPointers[index].get(CPU));
             }
 
 #if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
