@@ -16,6 +16,7 @@ set (chai_headers
   ArrayManager.inl
   ChaiMacros.hpp
   DeviceHelpers.hpp
+  ExecutionContext.hpp
   ExecutionSpaces.hpp
   ManagedArray.hpp
   ManagedArray.inl
@@ -91,16 +92,6 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
       cuda)
   endif ()
 endif ()
-
-if (CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
-  set (chai_headers
-    ${chai_headers}
-    expt/ContextRAJAPlugin.hpp)
-
-  set (chai_sources
-    ${chai_sources}
-    expt/ContextRAJAPlugin.cpp)
-endif()
 
 blt_add_library(
   NAME chai

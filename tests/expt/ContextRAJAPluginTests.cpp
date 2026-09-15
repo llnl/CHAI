@@ -6,21 +6,16 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "chai/config.hpp"
+#include "chai/ArrayManager.hpp"
 #include "chai/ChaiMacros.hpp"
 #include "chai/expt/Context.hpp"
 #include "chai/expt/ContextManager.hpp"
-#include "chai/expt/ContextRAJAPlugin.hpp"
 #include "RAJA/RAJA.hpp"
 #include "gtest/gtest.h"
 #include "TestHelpers.hpp"
 
-// Pre-main registration of plugin with RAJA
-static ::RAJA::util::PluginRegistry::add<::chai::expt::ContextRAJAPlugin> P(
-  "CHAIContextPlugin",
-  "Plugin that integrates CHAI context management with RAJA.");
-
 /*!
- * \brief Tests whether the plugin was actually called.
+ * \brief Captures both CHAI APIs' views of the execution context.
  */
 class ContextRAJAPluginTester {
   public:
@@ -33,13 +28,20 @@ class ContextRAJAPluginTester {
      * @brief Copy-construct and capture the current ContextManager context.
      */
     CHAI_HOST_DEVICE ContextRAJAPluginTester(const ContextRAJAPluginTester& other)
-      : m_context{other.m_context}
+      : m_context{other.m_context},
+        m_execution_space{other.m_execution_space}
     {
 #if !defined(CHAI_DEVICE_COMPILE)
       ::chai::expt::Context context = ::chai::expt::ContextManager::getInstance().getContext();
 
       if (context != ::chai::expt::Context::NONE) {
         m_context = context;
+      }
+
+      ::chai::ExecutionSpace execution_space =
+        ::chai::ArrayManager::getInstance()->getExecutionSpace();
+      if (execution_space != ::chai::NONE) {
+        m_execution_space = execution_space;
       }
 #endif
     }
@@ -53,25 +55,47 @@ class ContextRAJAPluginTester {
       return m_context;
     }
 
+    CHAI_HOST_DEVICE ::chai::ExecutionSpace getExecutionSpace() const {
+      return m_execution_space;
+    }
+
   private:
     /*!
      * @brief Stored context value.
      */
     ::chai::expt::Context m_context{::chai::expt::Context::NONE};
+    ::chai::ExecutionSpace m_execution_space{::chai::NONE};
 };
+
+TEST(ContextRAJAPlugin, RegisteredOnce) {
+  int chai_plugin_count = 0;
+  for (auto plugin = ::RAJA::util::PluginRegistry::begin();
+       plugin != ::RAJA::util::PluginRegistry::end(); ++plugin) {
+    if (plugin->getName() == "RajaExecutionSpacePlugin" ||
+        plugin->getName() == "CHAIContextPlugin") {
+      ++chai_plugin_count;
+    }
+  }
+
+  EXPECT_EQ(chai_plugin_count, 1);
+}
 
 // Test that the tester object got the updated context and that the current context
 // is NONE inside the loop.
 TEST(ContextRAJAPlugin, HOST) {
   ContextRAJAPluginTester tester{};
   EXPECT_EQ(tester.getContext(), ::chai::expt::Context::NONE);
+  EXPECT_EQ(tester.getExecutionSpace(), ::chai::NONE);
 
   ::RAJA::forall<::RAJA::seq_exec>(::RAJA::TypedRangeSegment<int>(0, 1), [=] (int) {
     EXPECT_EQ(tester.getContext(), ::chai::expt::Context::HOST);
+    EXPECT_EQ(tester.getExecutionSpace(), ::chai::CPU);
     EXPECT_EQ(::chai::expt::ContextManager::getInstance().getContext(), ::chai::expt::Context::NONE);
+    EXPECT_EQ(::chai::ArrayManager::getInstance()->getExecutionSpace(), ::chai::NONE);
   });
 
   EXPECT_EQ(tester.getContext(), ::chai::expt::Context::NONE);
+  EXPECT_EQ(tester.getExecutionSpace(), ::chai::NONE);
 }
 
 #if defined(CHAI_ENABLE_CUDA)
@@ -91,6 +115,7 @@ CUDA_TEST(ContextRAJAPlugin, CUDA) {
 
   EXPECT_EQ(*result, ::chai::expt::Context::DEVICE);
   EXPECT_EQ(tester.getContext(), ::chai::expt::Context::NONE);
+  EXPECT_EQ(tester.getExecutionSpace(), ::chai::NONE);
 
   CAMP_CUDA_API_INVOKE_AND_CHECK(cudaFree, (void*) result);
 }
@@ -113,6 +138,7 @@ TEST(ContextRAJAPlugin, HIP) {
 
   EXPECT_EQ(*result, ::chai::expt::Context::DEVICE);
   EXPECT_EQ(tester.getContext(), ::chai::expt::Context::NONE);
+  EXPECT_EQ(tester.getExecutionSpace(), ::chai::NONE);
 
   CAMP_HIP_API_INVOKE_AND_CHECK(hipFree, (void*) result);
 }

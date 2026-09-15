@@ -46,7 +46,7 @@ blt_add_test(
   NAME ContextGuardTests
   COMMAND ContextGuardTests)
 
-if(CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
+if(CHAI_ENABLE_RAJA_PLUGIN)
   blt_add_executable(
     NAME ContextRAJAPluginTests
     SOURCES ContextRAJAPluginTests.cpp
