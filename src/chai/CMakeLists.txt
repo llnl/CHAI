@@ -25,7 +25,8 @@ set (chai_headers
   Types.hpp)
 
 set (chai_sources
-  ArrayManager.cpp)
+  ArrayManager.cpp
+  ExecutionContext.cpp)
 
 if(CHAI_DISABLE_RM)
   set(chai_headers
