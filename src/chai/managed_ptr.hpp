@@ -999,24 +999,22 @@ namespace chai {
 #if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
       template <typename T>
 #if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-      CHAI_HOST void emplace_pointer_table(T** pointers,
-                                           const managed_ptr<T>* managedPointers,
-                                           size_t size)
+      CHAI_HOST void populate_pointer_table(T** pointers,
+                                            const managed_ptr<T>* managedPointers,
+                                            size_t size)
       {
-         using pointer_type = T*;
          for (size_t index = 0; index < size; ++index) {
-            ::new (static_cast<void*>(pointers + index)) pointer_type(managedPointers[index].get(GPU));
+            pointers[index] = managedPointers[index].get(GPU);
          }
       }
 #else
-      CHAI_GLOBAL void emplace_pointer_table(T** pointers,
-                                             const managed_ptr<T>* managedPointers,
-                                             size_t size)
+      CHAI_GLOBAL void populate_pointer_table(T** pointers,
+                                              const managed_ptr<T>* managedPointers,
+                                              size_t size)
       {
-         using pointer_type = T*;
          size_t const index = blockIdx.x * blockDim.x + threadIdx.x;
          if (index < size) {
-            ::new (static_cast<void*>(pointers + index)) pointer_type(managedPointers[index].get());
+            pointers[index] = managedPointers[index].get();
          }
       }
 #endif
@@ -1048,9 +1046,8 @@ namespace chai {
             m_cpu_pointers = static_cast<T**>(cpuAllocator.allocate(m_size * sizeof(T*)));
             chai::managed_ptr<T>* hostManagedPointers = managedPointers.data();
 
-            using pointer_type = T*;
             for (size_t index = 0; index < m_size; ++index) {
-               ::new (static_cast<void*>(m_cpu_pointers + index)) pointer_type(hostManagedPointers[index].get(CPU));
+               m_cpu_pointers[index] = hostManagedPointers[index].get(CPU);
             }
 
 #if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
@@ -1060,18 +1057,18 @@ namespace chai {
 
 #if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
             arrayManager->setGPUSimMode(true);
-            detail::emplace_pointer_table(m_gpu_pointers, managedPointers.data(GPU), m_size);
+            detail::populate_pointer_table(m_gpu_pointers, managedPointers.data(GPU), m_size);
             arrayManager->setGPUSimMode(false);
 #elif defined(__CUDACC__)
             constexpr int threadsPerBlock = 256;
             int const blocks = static_cast<int>((m_size + threadsPerBlock - 1) / threadsPerBlock);
-            detail::emplace_pointer_table<T><<<blocks, threadsPerBlock>>>(m_gpu_pointers,
-                                                                            managedPointers.data(GPU),
-                                                                            m_size);
+            detail::populate_pointer_table<T><<<blocks, threadsPerBlock>>>(m_gpu_pointers,
+                                                                             managedPointers.data(GPU),
+                                                                             m_size);
 #elif defined(__HIPCC__)
             constexpr int threadsPerBlock = 256;
             int const blocks = static_cast<int>((m_size + threadsPerBlock - 1) / threadsPerBlock);
-            hipLaunchKernelGGL(detail::emplace_pointer_table<T>, dim3(blocks), dim3(threadsPerBlock), 0, 0,
+            hipLaunchKernelGGL(detail::populate_pointer_table<T>, dim3(blocks), dim3(threadsPerBlock), 0, 0,
                                m_gpu_pointers, managedPointers.data(GPU), m_size);
 #endif
             synchronize();
