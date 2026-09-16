@@ -1390,6 +1390,44 @@ CHAI_HOST ManagedArrayOfManagedPtrUnpacker<T> unpack(const chai::ManagedArray<ch
 ///                into the table
 /// @return A table owner whose view() supplies the execution-space T** table
 ///
+/// For example, if `Container` has a `CHAI_HOST_DEVICE` constructor that takes
+/// an `Item**` and a count, the table can be used as follows:
+///
+/// @code{.cpp}
+/// chai::ManagedArray<chai::managed_ptr<Item>> items(count);
+/// // Populate items before creating the table.
+///
+/// auto item_table = chai::unpack_pointer_table(items);
+/// auto container = chai::make_managed<Container>(item_table.view(), count);
+///
+/// // Keep the source handles and the table allocation alive with the object
+/// // that stores the raw Item** view. The item_table capture is intentional
+/// // despite it not being used in the callback.  The callback is stored by
+/// // container, so its closure keeps a copy of item_table alive.
+/// // That copy shares ownership of the table allocation;
+/// // view() itself is only a non-owning Item**. Without this capture, the
+/// // local item_table would be destroyed after setup and the stored view
+/// // could dangle.
+/// container.set_callback(
+///    [items, item_table] (chai::Action action,
+///                         chai::ExecutionSpace,
+///                         void*) mutable {
+///       if (action == chai::ACTION_MOVE) {
+///          // Trigger the normal move handling of the inner managed_ptrs.
+///          for (std::size_t i = 0; i < items.size(); ++i) {
+///             auto item = items[i];
+///          }
+///          return true;
+///       }
+///       return false;
+///    });
+/// @endcode
+///
+/// The callback capture of `item_table` is important: `view()` itself is
+/// non-owning. The table is created from the pointers present at the call, so
+/// populate or replace the inner managed_ptr objects before this call and
+/// recreate the table if those pointer values change later.
+///
 template <typename T>
 CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
    const chai::ManagedArray<chai::managed_ptr<T>>& arg)
