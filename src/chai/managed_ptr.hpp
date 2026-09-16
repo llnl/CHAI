@@ -802,6 +802,17 @@ namespace chai {
    /// the internal pointers contained by a ManagedArray of managed_ptr should be extracted.
    /// It is not intended to be used directly, but rather created by unpack.
    ///
+   /// @details The raw-pointer arrays are snapshots taken when this wrapper is
+   /// constructed. Assigning a different managed_ptr to an element, freeing an
+   /// element, or changing the size of the source ManagedArray does not update
+   /// the extracted arrays. Recreate the unpacker after changing the pointer
+   /// values or the array size. Mutating an object through an existing T* is
+   /// visible through the managed_ptr as long as that object remains allocated.
+   ///
+   /// The unpacker does not own the pointed-to objects. The owner of each
+   /// managed_ptr must keep its pointed-to object alive for the duration of
+   /// every use of the extracted T**.
+   ///
    template <typename T>
    class ManagedArrayOfManagedPtrUnpacker {
       public:
@@ -968,6 +979,9 @@ namespace chai {
    /// @details PointerTableView is intended for passing a raw-pointer table to
    /// make_managed. It selects the table associated with the calling execution
    /// space, while PointerTable retains the allocations that back both tables.
+   /// The view contains only raw table pointers and does not extend the lifetime
+   /// of the PointerTable. It is therefore valid only while the corresponding
+   /// PointerTable owner is alive.
    ///
    template <typename T>
    class PointerTableView {
@@ -1026,9 +1040,25 @@ namespace chai {
    /// @brief Owns Umpire-backed raw-pointer tables for a ManagedArray of managed_ptr.
    ///
    /// @details The host and device tables contain the corresponding raw pointer
-   /// from each managed_ptr. The table is deliberately separate from the input
-   /// ManagedArray so an object that stores the returned T** can retain it past
-   /// the temporary unpacking expression used during construction.
+   /// from each managed_ptr at the time the PointerTable is constructed. The
+   /// table is deliberately separate from the input ManagedArray so an object
+   /// that stores the returned T** can retain it past the temporary unpacking
+   /// expression used during construction.
+   ///
+   /// The tables are fixed-size snapshots, not live views. Assigning, replacing,
+   /// or freeing an inner managed_ptr does not update an existing table; its
+   /// entry will remain unchanged and may become stale or dangling. Changes to
+   /// the state of an object reached through an unchanged T* are visible, but
+   /// the table does not synchronize host and device objects or pointer values.
+   /// Recreate the PointerTable after changing the inner pointer values or the
+   /// ManagedArray size. An entry is nullptr when the corresponding managed_ptr
+   /// has no pointer in that execution space.
+   ///
+   /// PointerTable stores the table allocations only. It does not retain the
+   /// input ManagedArray, its managed_ptr elements, or the objects they point
+   /// to, so those objects must remain valid while the table is used.
+   /// On GPU builds, construction populates the device table and synchronizes
+   /// before returning.
    ///
    template <typename T>
    class PointerTable {
@@ -1111,6 +1141,9 @@ namespace chai {
    /// @details Instances are copyable so one can be passed to a managed_ptr
    /// callback. The callback capture then keeps the Umpire-backed tables alive
    /// for exactly the lifetime of the object that stores the view's raw T**.
+   /// Calling view() does not transfer or share that ownership: it returns a
+   /// non-owning PointerTableView. The input ManagedArray and the inner
+   /// managed_ptr objects are also not retained.
    ///
    template <typename T>
    class ManagedPtrOfPointerTableUnpacker {
@@ -1121,6 +1154,12 @@ namespace chai {
          {
          }
 
+         ///
+         /// @return A non-owning view of the host/device pointer tables
+         ///
+         /// @warning The returned view is valid only while this wrapper, or a
+         ///          copy of it, remains alive.
+         ///
          CHAI_HOST PointerTableView<T> view() const
          {
             return m_table->view();
@@ -1316,6 +1355,12 @@ namespace chai {
 /// @return A wrapper used by make_managed for unpacking the internal pointers
 ///         in the correct space
 ///
+/// @warning The returned wrapper contains pointer arrays populated at the time
+///          of the call; it is not updated when elements of arg are assigned,
+///          replaced, or freed, or when arg is resized. Keep the wrapper alive
+///          while the T** is used. The wrapper does not own the managed_ptr
+///          pointees, which must remain alive while the T** is used.
+///
 template <typename T>
 CHAI_HOST ManagedArrayOfManagedPtrUnpacker<T> unpack(const chai::ManagedArray<chai::managed_ptr<T>>& arg) {
    return ManagedArrayOfManagedPtrUnpacker<T>(arg);
@@ -1324,8 +1369,26 @@ CHAI_HOST ManagedArrayOfManagedPtrUnpacker<T> unpack(const chai::ManagedArray<ch
 ///
 /// @brief Creates a persistent Umpire-backed pointer table for managed pointers.
 ///
-/// @details Capture the returned object in the callback of any managed_ptr that
-/// stores its view, so its table remains valid until that managed_ptr is freed.
+/// @details This function immediately copies the CPU pointer from each input
+/// managed_ptr into a host table and, when GPU managed_ptr support is enabled,
+/// the GPU pointer into a device table. The returned object exposes the table
+/// through view(). The table is a fixed-size snapshot: later assignment,
+/// replacement, or free of an input managed_ptr, or resizing of arg, is not
+/// reflected in the table. Recreate the table after such changes. Mutations to
+/// an object through an unchanged pointer are visible because the table points
+/// to that same object, but no host/device synchronization is provided.
+///
+/// The returned view is non-owning. Capture the returned object in the callback
+/// of any managed_ptr that stores its view (or otherwise keep it alive), so its
+/// table remains valid until that managed_ptr is freed. This function does not
+/// retain arg or the pointed-to objects; they must remain valid independently.
+/// An empty arg produces a null table and does not allocate a pointer table.
+/// This function is host-only, even though the returned view can be consumed by
+/// host and device constructors.
+///
+/// @param[in] arg The ManagedArray of managed_ptr whose raw pointers are copied
+///                into the table
+/// @return A table owner whose view() supplies the execution-space T** table
 ///
 template <typename T>
 CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
