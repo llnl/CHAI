@@ -14,6 +14,9 @@ The format of this file is based on [Keep a Changelog](http://keepachangelog.com
 
 ## [Unreleased] - Release date YYYY-MM-DD
 
+### Added
+- Added `chai::unpack_pointer_table` for creating persistent host/device pointer tables from a `ManagedArray<managed_ptr<T>>`.
+
 ### Changed
 - The `isSlice` function can now be called on `const chai::ManagedArray<T>`.
 
