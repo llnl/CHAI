@@ -802,6 +802,17 @@ namespace chai {
    /// the internal pointers contained by a ManagedArray of managed_ptr should be extracted.
    /// It is not intended to be used directly, but rather created by unpack.
    ///
+   /// @details The raw-pointer arrays are snapshots taken when this wrapper is
+   /// constructed. Assigning a different managed_ptr to an element, freeing an
+   /// element, or changing the size of the source ManagedArray does not update
+   /// the extracted arrays. Recreate the unpacker after changing the pointer
+   /// values or the array size. Mutating an object through an existing T* is
+   /// visible through the managed_ptr as long as that object remains allocated.
+   ///
+   /// The unpacker does not own the pointed-to objects. The owner of each
+   /// managed_ptr must keep its pointed-to object alive for the duration of
+   /// every use of the extracted T**.
+   ///
    template <typename T>
    class ManagedArrayOfManagedPtrUnpacker {
       public:
@@ -962,7 +973,201 @@ namespace chai {
          bool m_ownsData = false; //!< Flag indicating if this object owns the data and should clean up
    };
 
+   ///
+   /// @brief Non-owning host/device view of a persistent table of raw pointers.
+   ///
+   /// @details PointerTableView is intended for passing a raw-pointer table to
+   /// make_managed. It selects the table associated with the calling execution
+   /// space, while PointerTable retains the allocations that back both tables.
+   /// The view contains only raw table pointers and does not extend the lifetime
+   /// of the PointerTable. It is therefore valid only while the corresponding
+   /// PointerTable owner is alive.
+   ///
+   template <typename T>
+   class PointerTableView {
+      public:
+         CHAI_HOST_DEVICE PointerTableView() = default;
 
+         CHAI_HOST_DEVICE PointerTableView(T** cpuPointers, T** gpuPointers)
+            : m_cpu_pointers(cpuPointers),
+              m_gpu_pointers(gpuPointers)
+         {
+         }
+
+         CHAI_HOST_DEVICE T** data() const
+         {
+#if defined(CHAI_DEVICE_COMPILE) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
+            return m_gpu_pointers;
+#else
+            return m_cpu_pointers;
+#endif
+         }
+
+      private:
+         T** m_cpu_pointers = nullptr;
+         T** m_gpu_pointers = nullptr;
+   };
+
+   namespace detail {
+
+#if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
+      template <typename T>
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+      CHAI_HOST void populate_pointer_table(T** pointers,
+                                            const managed_ptr<T>* managedPointers,
+                                            size_t size)
+      {
+         for (size_t index = 0; index < size; ++index) {
+            pointers[index] = managedPointers[index].get(GPU);
+         }
+      }
+#else
+      CHAI_GLOBAL void populate_pointer_table(T** pointers,
+                                              const managed_ptr<T>* managedPointers,
+                                              size_t size)
+      {
+         size_t const index = blockIdx.x * blockDim.x + threadIdx.x;
+         if (index < size) {
+            pointers[index] = managedPointers[index].get();
+         }
+      }
+#endif
+#endif
+
+   } // namespace detail
+
+   ///
+   /// @brief Owns Umpire-backed raw-pointer tables for a ManagedArray of managed_ptr.
+   ///
+   /// @details The host and device tables contain the corresponding raw pointer
+   /// from each managed_ptr at the time the PointerTable is constructed. The
+   /// table is deliberately separate from the input ManagedArray so an object
+   /// that stores the returned T** can retain it past the temporary unpacking
+   /// expression used during construction.
+   ///
+   /// The tables are fixed-size snapshots, not live views. Assigning, replacing,
+   /// or freeing an inner managed_ptr does not update an existing table; its
+   /// entry will remain unchanged and may become stale or dangling. Changes to
+   /// the state of an object reached through an unchanged T* are visible, but
+   /// the table does not synchronize host and device objects or pointer values.
+   /// Recreate the PointerTable after changing the inner pointer values or the
+   /// ManagedArray size. An entry is nullptr when the corresponding managed_ptr
+   /// has no pointer in that execution space.
+   ///
+   /// PointerTable stores the table allocations only. It does not retain the
+   /// input ManagedArray, its managed_ptr elements, or the objects they point
+   /// to, so those objects must remain valid while the table is used.
+   /// On GPU builds, construction populates the device table and synchronizes
+   /// before returning.
+   ///
+   template <typename T>
+   class PointerTable {
+      public:
+         CHAI_HOST explicit PointerTable(const chai::ManagedArray<chai::managed_ptr<T>>& managedPointers)
+            : m_size(managedPointers.size())
+         {
+            if (m_size == 0) {
+               return;
+            }
+
+            auto* arrayManager = chai::ArrayManager::getInstance();
+            m_cpu_allocator_id = arrayManager->getAllocatorId(CPU);
+            auto cpuAllocator = arrayManager->getAllocator(m_cpu_allocator_id);
+            m_cpu_pointers = static_cast<T**>(cpuAllocator.allocate(m_size * sizeof(T*)));
+            chai::managed_ptr<T>* hostManagedPointers = managedPointers.data();
+
+            for (size_t index = 0; index < m_size; ++index) {
+               m_cpu_pointers[index] = hostManagedPointers[index].get(CPU);
+            }
+
+#if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
+            m_gpu_allocator_id = arrayManager->getAllocatorId(GPU);
+            auto gpuAllocator = arrayManager->getAllocator(m_gpu_allocator_id);
+            m_gpu_pointers = static_cast<T**>(gpuAllocator.allocate(m_size * sizeof(T*)));
+
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+            arrayManager->setGPUSimMode(true);
+            detail::populate_pointer_table(m_gpu_pointers, managedPointers.data(GPU), m_size);
+            arrayManager->setGPUSimMode(false);
+#elif defined(__CUDACC__)
+            constexpr int threadsPerBlock = 256;
+            int const blocks = static_cast<int>((m_size + threadsPerBlock - 1) / threadsPerBlock);
+            detail::populate_pointer_table<T><<<blocks, threadsPerBlock>>>(m_gpu_pointers,
+                                                                             managedPointers.data(GPU),
+                                                                             m_size);
+#elif defined(__HIPCC__)
+            constexpr int threadsPerBlock = 256;
+            int const blocks = static_cast<int>((m_size + threadsPerBlock - 1) / threadsPerBlock);
+            hipLaunchKernelGGL(detail::populate_pointer_table<T>, dim3(blocks), dim3(threadsPerBlock), 0, 0,
+                               m_gpu_pointers, managedPointers.data(GPU), m_size);
+#endif
+            synchronize();
+#endif
+         }
+
+         PointerTable(const PointerTable&) = delete;
+         PointerTable& operator=(const PointerTable&) = delete;
+
+         CHAI_HOST ~PointerTable()
+         {
+            auto* arrayManager = chai::ArrayManager::getInstance();
+
+#if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
+            if (m_gpu_pointers != nullptr) {
+               arrayManager->getAllocator(m_gpu_allocator_id).deallocate(m_gpu_pointers);
+            }
+#endif
+            if (m_cpu_pointers != nullptr) {
+               arrayManager->getAllocator(m_cpu_allocator_id).deallocate(m_cpu_pointers);
+            }
+         }
+
+         CHAI_HOST PointerTableView<T> view() const
+         {
+            return PointerTableView<T>(m_cpu_pointers, m_gpu_pointers);
+         }
+
+      private:
+         size_t m_size = 0;
+         int m_cpu_allocator_id = -1;
+         int m_gpu_allocator_id = -1;
+         T** m_cpu_pointers = nullptr;
+         T** m_gpu_pointers = nullptr;
+   };
+
+   ///
+   /// @brief Creates and retains a PointerTable while exposing its execution-space view.
+   ///
+   /// @details Instances are copyable so one can be passed to a managed_ptr
+   /// callback. The callback capture then keeps the Umpire-backed tables alive
+   /// for exactly the lifetime of the object that stores the view's raw T**.
+   /// Calling view() does not transfer or share that ownership: it returns a
+   /// non-owning PointerTableView. The input ManagedArray and the inner
+   /// managed_ptr objects are also not retained.
+   ///
+   template <typename T>
+   class ManagedPtrOfPointerTableUnpacker {
+      public:
+         CHAI_HOST explicit ManagedPtrOfPointerTableUnpacker(
+            const chai::ManagedArray<chai::managed_ptr<T>>& managedPointers)
+            : m_table(std::make_shared<PointerTable<T>>(managedPointers))
+         {
+         }
+
+         ///
+         /// @return A non-owning view of the host/device pointer tables
+         ///
+         /// @warning The returned view is valid only while this wrapper, or a
+         ///          copy of it, remains alive.
+         ///
+         CHAI_HOST PointerTableView<T> view() const
+         {
+            return m_table->view();
+         }
+
+      private:
+         std::shared_ptr<PointerTable<T>> m_table;
+   };
    namespace detail {
 
       ///
@@ -1024,6 +1229,13 @@ namespace chai {
          return arg.data();
       }
 
+      ///
+      /// @brief Extracts the execution-space pointer table from a PointerTableView.
+      ///
+      template <typename T>
+      CHAI_HOST_DEVICE T** processArguments(const PointerTableView<T>& arg) {
+         return arg.data();
+      }
 
 #if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
 
@@ -1143,11 +1355,85 @@ namespace chai {
 /// @return A wrapper used by make_managed for unpacking the internal pointers
 ///         in the correct space
 ///
+/// @warning The returned wrapper contains pointer arrays populated at the time
+///          of the call; it is not updated when elements of arg are assigned,
+///          replaced, or freed, or when arg is resized. Keep the wrapper alive
+///          while the T** is used. The wrapper does not own the managed_ptr
+///          pointees, which must remain alive while the T** is used.
+///
 template <typename T>
 CHAI_HOST ManagedArrayOfManagedPtrUnpacker<T> unpack(const chai::ManagedArray<chai::managed_ptr<T>>& arg) {
    return ManagedArrayOfManagedPtrUnpacker<T>(arg);
 }
 
+///
+/// @brief Creates a persistent Umpire-backed pointer table for managed pointers.
+///
+/// @details This function immediately copies the CPU pointer from each input
+/// managed_ptr into a host table and, when GPU managed_ptr support is enabled,
+/// the GPU pointer into a device table. The returned object exposes the table
+/// through view(). The table is a fixed-size snapshot: later assignment,
+/// replacement, or free of an input managed_ptr, or resizing of arg, is not
+/// reflected in the table. Recreate the table after such changes. Mutations to
+/// an object through an unchanged pointer are visible because the table points
+/// to that same object, but no host/device synchronization is provided.
+///
+/// The returned view is non-owning. Capture the returned object in the callback
+/// of any managed_ptr that stores its view (or otherwise keep it alive), so its
+/// table remains valid until that managed_ptr is freed. This function does not
+/// retain arg or the pointed-to objects; they must remain valid independently.
+/// An empty arg produces a null table and does not allocate a pointer table.
+/// This function is host-only, even though the returned view can be consumed by
+/// host and device constructors.
+///
+/// @param[in] arg The ManagedArray of managed_ptr whose raw pointers are copied
+///                into the table
+/// @return A table owner whose view() supplies the execution-space T** table
+///
+/// For example, if `Container` has a `CHAI_HOST_DEVICE` constructor that takes
+/// an `Item**` and a count, the table can be used as follows:
+///
+/// @code{.cpp}
+/// chai::ManagedArray<chai::managed_ptr<Item>> items(count);
+/// // Populate items before creating the table.
+///
+/// auto item_table = chai::unpack_pointer_table(items);
+/// auto container = chai::make_managed<Container>(item_table.view(), count);
+///
+/// // Keep the source handles and the table allocation alive with the object
+/// // that stores the raw Item** view. The item_table capture is intentional
+/// // despite it not being used in the callback.  The callback is stored by
+/// // container, so its closure keeps a copy of item_table alive.
+/// // That copy shares ownership of the table allocation;
+/// // view() itself is only a non-owning Item**. Without this capture, the
+/// // local item_table would be destroyed after setup and the stored view
+/// // could dangle.
+/// container.set_callback(
+///    [items, item_table] (chai::Action action,
+///                         chai::ExecutionSpace,
+///                         void*) mutable {
+///       if (action == chai::ACTION_MOVE) {
+///          // Trigger the normal move handling of the inner managed_ptrs.
+///          for (std::size_t i = 0; i < items.size(); ++i) {
+///             auto item = items[i];
+///          }
+///          return true;
+///       }
+///       return false;
+///    });
+/// @endcode
+///
+/// The callback capture of `item_table` is important: `view()` itself is
+/// non-owning. The table is created from the pointers present at the call, so
+/// populate or replace the inner managed_ptr objects before this call and
+/// recreate the table if those pointer values change later.
+///
+template <typename T>
+CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
+   const chai::ManagedArray<chai::managed_ptr<T>>& arg)
+{
+   return ManagedPtrOfPointerTableUnpacker<T>(arg);
+}
 
    ///
    /// @author Alan Dayton
