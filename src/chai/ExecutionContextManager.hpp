@@ -13,8 +13,6 @@
 
 namespace chai
 {
-  class ArrayManager;
-
   /*!
    * \brief Singleton that manages the current execution context and device
    *        synchronization state.
@@ -66,17 +64,6 @@ namespace chai
 
     private:
       ExecutionContextManager() = default;
-
-      CHAISHAREDDLL_API void setExecutionSpace(ExecutionSpace space);
-      CHAISHAREDDLL_API ExecutionSpace getExecutionSpace() const;
-      CHAISHAREDDLL_API bool syncIfNeeded();
-
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-      CHAISHAREDDLL_API void setGPUSimMode(bool enabled);
-      CHAISHAREDDLL_API bool isGPUSimMode() const;
-#endif
-
-      friend class ArrayManager;
   };  // class ExecutionContextManager
 }  // namespace chai
 

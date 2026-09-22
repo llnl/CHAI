@@ -166,7 +166,12 @@ void ArrayManager::setAllocator(ExecutionSpace space, umpire::Allocator &allocat
 
 CHAI_INLINE
 bool ArrayManager::syncIfNeeded() {
-  return ExecutionContextManager::getInstance().syncIfNeeded();
+  auto& context_manager = ExecutionContextManager::getInstance();
+  if (!context_manager.isSynchronized(ExecutionContext::DEVICE)) {
+    context_manager.synchronize(ExecutionContext::DEVICE);
+    return true;
+  }
+  return false;
 }
 } // end of namespace chai
 

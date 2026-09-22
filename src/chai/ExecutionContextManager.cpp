@@ -20,15 +20,11 @@ namespace
 {
 struct ExecutionContextState
 {
-  ExecutionSpace execution_space{NONE};
+  ExecutionContext context{ExecutionContext::NONE};
   bool device_synchronized{true};
 };
 
 thread_local ExecutionContextState execution_context_state;
-
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-bool gpu_sim_mode{false};
-#endif
 }  // namespace
 
 ExecutionContextManager& ExecutionContextManager::getInstance()
@@ -39,35 +35,24 @@ ExecutionContextManager& ExecutionContextManager::getInstance()
 
 ExecutionContext ExecutionContextManager::getContext() const
 {
-  switch (execution_context_state.execution_space) {
-    case CPU:
-      return ExecutionContext::HOST;
-    case GPU:
-      return ExecutionContext::DEVICE;
-    default:
-      return ExecutionContext::NONE;
-  }
+  return execution_context_state.context;
 }
 
 void ExecutionContextManager::setContext(ExecutionContext context)
 {
-  switch (context) {
-    case ExecutionContext::HOST:
-      setExecutionSpace(CPU);
-      break;
-    case ExecutionContext::DEVICE:
-      setExecutionSpace(GPU);
-      break;
-    default:
-      setExecutionSpace(NONE);
-      break;
+  execution_context_state.context = context;
+
+  if (context == ExecutionContext::DEVICE) {
+    execution_context_state.device_synchronized = false;
   }
 }
 
 void ExecutionContextManager::synchronize(ExecutionContext context)
 {
-  if (context == ExecutionContext::DEVICE) {
-    syncIfNeeded();
+  if (context == ExecutionContext::DEVICE &&
+      !execution_context_state.device_synchronized) {
+    chai::synchronize();
+    execution_context_state.device_synchronized = true;
   }
 }
 
@@ -85,56 +70,7 @@ void ExecutionContextManager::setDeviceSynchronized(bool synchronized)
 
 void ExecutionContextManager::reset()
 {
-  execution_context_state.execution_space = NONE;
+  execution_context_state.context = ExecutionContext::NONE;
   execution_context_state.device_synchronized = true;
 }
-
-void ExecutionContextManager::setExecutionSpace(ExecutionSpace space)
-{
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-  if (gpu_sim_mode && space != NONE) {
-    space = GPU;
-  }
-#endif
-
-  if (space == GPU) {
-    execution_context_state.device_synchronized = false;
-  }
-
-#if defined(CHAI_THIN_GPU_ALLOCATE)
-  if (space == CPU) {
-    syncIfNeeded();
-  }
-#endif
-
-  execution_context_state.execution_space = space;
-}
-
-ExecutionSpace ExecutionContextManager::getExecutionSpace() const
-{
-  return execution_context_state.execution_space;
-}
-
-bool ExecutionContextManager::syncIfNeeded()
-{
-  if (!execution_context_state.device_synchronized) {
-    chai::synchronize();
-    execution_context_state.device_synchronized = true;
-    return true;
-  }
-
-  return false;
-}
-
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-void ExecutionContextManager::setGPUSimMode(bool enabled)
-{
-  gpu_sim_mode = enabled;
-}
-
-bool ExecutionContextManager::isGPUSimMode() const
-{
-  return gpu_sim_mode;
-}
-#endif
 }  // namespace chai

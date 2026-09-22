@@ -18,6 +18,33 @@
 
 namespace chai
 {
+namespace
+{
+ExecutionContext toExecutionContext(ExecutionSpace space)
+{
+  switch (space) {
+    case CPU:
+      return ExecutionContext::HOST;
+    case GPU:
+      return ExecutionContext::DEVICE;
+    default:
+      return ExecutionContext::NONE;
+  }
+}
+
+ExecutionSpace toExecutionSpace(ExecutionContext context)
+{
+  switch (context) {
+    case ExecutionContext::HOST:
+      return CPU;
+    case ExecutionContext::DEVICE:
+      return GPU;
+    default:
+      return NONE;
+  }
+}
+}  // namespace
+
 PointerRecord ArrayManager::s_null_record = PointerRecord();
 
 ArrayManager* ArrayManager::getInstance()
@@ -177,8 +204,22 @@ void * ArrayManager::frontOfAllocation(void * pointer) {
 
 void ArrayManager::setExecutionSpace(ExecutionSpace space)
 {
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+  if (isGPUSimMode() && space != NONE) {
+    space = GPU;
+  }
+#endif
+
   CHAI_LOG(Debug, "Setting execution space to " << space);
-  ExecutionContextManager::getInstance().setExecutionSpace(space);
+
+#if defined(CHAI_THIN_GPU_ALLOCATE)
+  if (space == CPU) {
+    syncIfNeeded();
+  }
+#endif
+
+  ExecutionContextManager::getInstance().setContext(
+      toExecutionContext(space));
 }
 
 void* ArrayManager::move(void* pointer,
@@ -187,7 +228,7 @@ void* ArrayManager::move(void* pointer,
 {
   // Check for default arg (NONE)
   if (space == NONE) {
-    space = ExecutionContextManager::getInstance().getExecutionSpace();
+    space = getExecutionSpace();
   }
 
   if (space == NONE) {
@@ -201,13 +242,13 @@ void* ArrayManager::move(void* pointer,
 
 ExecutionSpace ArrayManager::getExecutionSpace()
 {
-  return ExecutionContextManager::getInstance().getExecutionSpace();
+  return toExecutionSpace(
+      ExecutionContextManager::getInstance().getContext());
 }
 
 void ArrayManager::registerTouch(PointerRecord* pointer_record)
 {
-  registerTouch(pointer_record,
-                ExecutionContextManager::getInstance().getExecutionSpace());
+  registerTouch(pointer_record, getExecutionSpace());
 }
 
 void ArrayManager::registerTouch(PointerRecord* pointer_record,
