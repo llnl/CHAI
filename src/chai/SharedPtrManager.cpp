@@ -10,6 +10,10 @@
 #include "chai/ExecutionSpaces.hpp"
 #include "chai/config.hpp"
 
+#if defined(CHAI_ENABLE_RAJA_PLUGIN)
+#include "chai/pluginLinker.hpp"
+#endif
+
 #if defined(CHAI_ENABLE_CUDA)
 #if !defined(CHAI_THIN_GPU_ALLOCATE)
 #include "cuda_runtime_api.h"

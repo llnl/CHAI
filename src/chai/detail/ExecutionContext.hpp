@@ -4,8 +4,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //////////////////////////////////////////////////////////////////////////////
-#ifndef CHAI_ExecutionContext_HPP
-#define CHAI_ExecutionContext_HPP
+#ifndef CHAI_detail_ExecutionContext_HPP
+#define CHAI_detail_ExecutionContext_HPP
 
 #include "chai/Types.hpp"
 
@@ -14,6 +14,8 @@ namespace chai
 namespace detail
 {
 
+// Internal accessors for CHAI's shared execution context. Per-thread state has
+// a single definition in ExecutionContext.cpp.
 CHAISHAREDDLL_API bool syncIfNeeded();
 
 CHAISHAREDDLL_API void setExecutionSpace(ExecutionSpace space);
@@ -35,4 +37,4 @@ CHAISHAREDDLL_API bool isGPUSimMode();
 }  // namespace detail
 }  // namespace chai
 
-#endif  // CHAI_ExecutionContext_HPP
+#endif  // CHAI_detail_ExecutionContext_HPP

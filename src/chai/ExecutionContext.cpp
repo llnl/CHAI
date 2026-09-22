@@ -5,9 +5,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //////////////////////////////////////////////////////////////////////////////
 
-#include "chai/ExecutionContext.hpp"
+#include "chai/detail/ExecutionContext.hpp"
 
 #include "chai/DeviceHelpers.hpp"
+
+#if defined(CHAI_ENABLE_RAJA_PLUGIN)
+#include "chai/pluginLinker.hpp"
+#endif
 
 namespace chai
 {

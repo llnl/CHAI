@@ -8,7 +8,7 @@
 
 #include "chai/RajaExecutionSpacePlugin.hpp"
 
-#include "chai/ExecutionContext.hpp"
+#include "chai/detail/ExecutionContext.hpp"
 
 namespace chai {
 

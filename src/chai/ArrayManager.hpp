@@ -8,15 +8,11 @@
 #define CHAI_ArrayManager_HPP
 
 #include "chai/ChaiMacros.hpp"
-#include "chai/ExecutionContext.hpp"
+#include "chai/detail/ExecutionContext.hpp"
 #include "chai/ExecutionSpaces.hpp"
 #include "chai/Types.hpp"
 
 #include "chai/PointerRecord.hpp"
-
-#if defined(CHAI_ENABLE_RAJA_PLUGIN)
-#include "chai/pluginLinker.hpp"
-#endif
 
 #include <unordered_map>
 

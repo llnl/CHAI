@@ -16,13 +16,15 @@ set (chai_headers
   ArrayManager.inl
   ChaiMacros.hpp
   DeviceHelpers.hpp
-  ExecutionContext.hpp
   ExecutionSpaces.hpp
   ManagedArray.hpp
   ManagedArray.inl
   managed_ptr.hpp
   PointerRecord.hpp
   Types.hpp)
+
+set (chai_detail_headers
+  detail/ExecutionContext.hpp)
 
 set (chai_sources
   ArrayManager.cpp
@@ -97,10 +99,12 @@ endif ()
 blt_add_library(
   NAME chai
   SOURCES ${chai_sources}
-  HEADERS ${chai_headers}
+  HEADERS ${chai_headers} ${chai_detail_headers}
   DEPENDS_ON ${chai_depends})
 
 install(FILES ${chai_headers} DESTINATION include/chai/)
+
+install(FILES ${chai_detail_headers} DESTINATION include/chai/detail/)
 
 install(FILES ../util/forall.hpp DESTINATION include/chai/util/)
 
