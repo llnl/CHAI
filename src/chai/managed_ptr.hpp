@@ -1499,6 +1499,18 @@ CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
       }
    }
 
+   ///
+   /// @brief Allocates and placement-constructs an object with CHAI's default host allocator.
+   /// @param[in] args Arguments passed to the object's constructor.
+   /// @return The allocated host object.
+   ///
+   template <typename T,
+             typename... Args>
+   CHAI_HOST T* default_allocate_on_host(Args&&... args) {
+      return allocate_on_host<T>(ArrayManager::getInstance()->getAllocator(CPU),
+                                 std::forward<Args>(args)...);
+   }
+
    /// Destroys and returns an allocator-backed host object to its allocator.
    template <typename T>
    CHAI_HOST void destroy_allocated_on_host(T* pointer, umpire::Allocator allocator) {
@@ -1644,6 +1656,18 @@ CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
          }
          throw;
       }
+   }
+
+   ///
+   /// @brief Allocates and placement-constructs an object with CHAI's default device allocator.
+   /// @param[in] args Arguments passed to the object's constructor.
+   /// @return The allocated device object.
+   ///
+   template <typename T,
+             typename... Args>
+   CHAI_HOST T* default_allocate_on_device(Args&&... args) {
+      return allocate_on_device<T>(ArrayManager::getInstance()->getAllocator(GPU),
+                                   std::forward<Args>(args)...);
    }
 
    template <typename T>
@@ -1897,16 +1921,17 @@ CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
    ///
    template <typename T,
              typename... Args>
-   CHAI_HOST managed_ptr<T> default_allocate_managed(Args... args)
+   CHAI_HOST managed_ptr<T> default_allocate_managed(Args&&... args)
    {
       auto* arrayManager = ArrayManager::getInstance();
 #if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
       return allocate_managed<T>({CPU, GPU},
                                  {arrayManager->getAllocator(CPU),
                                   arrayManager->getAllocator(GPU)},
-                                 args...);
+                                 std::forward<Args>(args)...);
 #else
-      return allocate_managed<T>({CPU}, {arrayManager->getAllocator(CPU)}, args...);
+      return allocate_managed<T>({CPU}, {arrayManager->getAllocator(CPU)},
+                                 std::forward<Args>(args)...);
 #endif
    }
 
