@@ -16,6 +16,9 @@ set (chai_headers
   ArrayManager.inl
   ChaiMacros.hpp
   DeviceHelpers.hpp
+  ExecutionContext.hpp
+  ExecutionContextGuard.hpp
+  ExecutionContextManager.hpp
   ExecutionSpaces.hpp
   ManagedArray.hpp
   ManagedArray.inl
@@ -24,7 +27,8 @@ set (chai_headers
   Types.hpp)
 
 set (chai_sources
-  ArrayManager.cpp)
+  ArrayManager.cpp
+  ExecutionContextManager.cpp)
 
 if(CHAI_DISABLE_RM)
   set(chai_headers
@@ -35,9 +39,6 @@ endif ()
 if(CHAI_ENABLE_EXPERIMENTAL)
   set(chai_headers
     ${chai_headers}
-    expt/Context.hpp
-    expt/ContextGuard.hpp
-    expt/ContextManager.hpp
     expt/DualArrayManager.hpp
     expt/HostArrayManager.hpp
     expt/HostSharedPointer.hpp
@@ -75,11 +76,11 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
     ${chai_headers}
     pluginLinker.hpp
     ManagedArrayView.hpp
-    RajaExecutionSpacePlugin.hpp)
+    ExecutionContextRAJAPlugin.hpp)
 
   set (chai_sources
     ${chai_sources}
-    RajaExecutionSpacePlugin.cpp)
+    ExecutionContextRAJAPlugin.cpp)
 
   set (chai_depends
     ${chai_depends}
@@ -91,16 +92,6 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
       cuda)
   endif ()
 endif ()
-
-if (CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
-  set (chai_headers
-    ${chai_headers}
-    expt/ContextRAJAPlugin.hpp)
-
-  set (chai_sources
-    ${chai_sources}
-    expt/ContextRAJAPlugin.cpp)
-endif()
 
 blt_add_library(
   NAME chai

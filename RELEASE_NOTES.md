@@ -16,9 +16,16 @@ The format of this file is based on [Keep a Changelog](http://keepachangelog.com
 
 ### Added
 - Added `chai::unpack_pointer_table` for creating persistent host/device pointer tables from a `ManagedArray<managed_ptr<T>>`.
+- Promoted execution-context support into the core `chai` namespace as `ExecutionContext`, `ExecutionContextManager`, and `ExecutionContextGuard`.
+- Added the automatically registered `ExecutionContextRAJAPlugin` when `CHAI_ENABLE_RAJA_PLUGIN` is enabled.
 
 ### Changed
 - The `isSlice` function can now be called on `const chai::ManagedArray<T>`.
+- `ArrayManager` now uses `ExecutionContextManager` as the source of execution-space and device-synchronization state. Its existing execution-space methods remain available as compatibility wrappers.
+- The RAJA integration now uses `ExecutionContextRAJAPlugin` for both the core and experimental CHAI data structures.
+
+### Removed
+- Removed the experimental `chai::expt::Context*` APIs, the legacy `RajaExecutionSpacePlugin`, and the `CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN` option.
 
 ## [Version 2026.07.0] - Release date 2025-08-11
 

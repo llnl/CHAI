@@ -8,8 +8,8 @@
 #ifndef CHAI_DUAL_ARRAY_MANAGER_HPP
 #define CHAI_DUAL_ARRAY_MANAGER_HPP
 
-#include "chai/expt/Context.hpp"
-#include "chai/expt/ContextManager.hpp"
+#include "chai/ExecutionContext.hpp"
+#include "chai/ExecutionContextManager.hpp"
 #include "umpire/Allocator.hpp"
 #include "umpire/ResourceManager.hpp"
 
@@ -145,7 +145,7 @@ namespace chai::expt
         other.m_host_data = nullptr;
         other.m_device_data = nullptr;
         other.m_size = 0;
-        other.m_modified = Context::NONE;
+        other.m_modified = ExecutionContext::NONE;
       }
 
       /*!
@@ -172,7 +172,7 @@ namespace chai::expt
           other.m_host_data = nullptr;
           other.m_device_data = nullptr;
           other.m_size = 0;
-          other.m_modified = Context::NONE;
+          other.m_modified = ExecutionContext::NONE;
         }
 
         return *this;
@@ -213,11 +213,11 @@ namespace chai::expt
         if (m_host_data == nullptr && m_device_data == nullptr)
         {
           m_size = new_size;
-          m_modified = Context::NONE;
+          m_modified = ExecutionContext::NONE;
           return;
         }
 
-        const Context resize_context = choose_resize_context();
+        const ExecutionContext resize_context = choose_resize_context();
         const std::size_t old_size_bytes = m_size * sizeof(ElementType);
         const std::size_t new_size_bytes = new_size * sizeof(ElementType);
 
@@ -234,7 +234,7 @@ namespace chai::expt
         deallocate(data, allocator);
         data = new_data;
 
-        if (resize_context == Context::HOST)
+        if (resize_context == ExecutionContext::HOST)
         {
           deallocate(m_device_data, m_device_allocator);
         }
@@ -263,11 +263,11 @@ namespace chai::expt
        * \param touch Whether the caller intends to modify the returned data.
        *
        * \return Pointer to the managed data, or nullptr if the current context
-       *         is Context::NONE or the array is empty.
+       *         is ExecutionContext::NONE or the array is empty.
        */
       ElementType* data(bool touch)
       {
-        return data(ContextManager::getInstance().getContext(), touch);
+        return data(ExecutionContextManager::getInstance().getContext(), touch);
       }
 
     private:
@@ -287,9 +287,9 @@ namespace chai::expt
       std::size_t m_size{0};
 
       /*!
-       * \brief Context that holds the most recently modified copy.
+       * \brief ExecutionContext that holds the most recently modified copy.
        */
-      Context m_modified{Context::NONE};
+      ExecutionContext m_modified{ExecutionContext::NONE};
 
       /*!
        * \brief Allocator used for host memory allocations.
@@ -321,7 +321,7 @@ namespace chai::expt
           return;
         }
 
-        ContextManager::getInstance().synchronize(other.m_modified);
+        ExecutionContextManager::getInstance().synchronize(other.m_modified);
 
         if (other.m_host_data != nullptr)
         {
@@ -344,7 +344,7 @@ namespace chai::expt
         deallocate(m_host_data, m_host_allocator);
         deallocate(m_device_data, m_device_allocator);
         m_size = 0;
-        m_modified = Context::NONE;
+        m_modified = ExecutionContext::NONE;
       }
 
       /*!
@@ -369,9 +369,9 @@ namespace chai::expt
        *
        * \return Allocator for \p context.
        */
-      umpire::Allocator& getAllocator(Context context)
+      umpire::Allocator& getAllocator(ExecutionContext context)
       {
-        return context == Context::DEVICE ? m_device_allocator : m_host_allocator;
+        return context == ExecutionContext::DEVICE ? m_device_allocator : m_host_allocator;
       }
 
       /*!
@@ -381,9 +381,9 @@ namespace chai::expt
        *
        * \return Pointer reference for \p context.
        */
-      ElementType*& pointer(Context context)
+      ElementType*& pointer(ExecutionContext context)
       {
-        return context == Context::DEVICE ? m_device_data : m_host_data;
+        return context == ExecutionContext::DEVICE ? m_device_data : m_host_data;
       }
 
       /*!
@@ -393,49 +393,49 @@ namespace chai::expt
        *
        * \return Pointer for \p context.
        */
-      ElementType* pointer(Context context) const
+      ElementType* pointer(ExecutionContext context) const
       {
-        return context == Context::DEVICE ? m_device_data : m_host_data;
+        return context == ExecutionContext::DEVICE ? m_device_data : m_host_data;
       }
 
       /*!
        * \brief Returns the opposite context for \p context.
        *
-       * \param context Context whose opposite is requested.
+       * \param context ExecutionContext whose opposite is requested.
        *
        * \return HOST for DEVICE, DEVICE for HOST.
        */
-      static Context otherContext(Context context)
+      static ExecutionContext otherContext(ExecutionContext context)
       {
-        return context == Context::DEVICE ? Context::HOST : Context::DEVICE;
+        return context == ExecutionContext::DEVICE ? ExecutionContext::HOST : ExecutionContext::DEVICE;
       }
 
       /*!
        * \brief Chooses the context whose allocation should be preserved during
        *        resize.
        *
-       * \return Context to resize in.
+       * \return ExecutionContext to resize in.
        */
-      Context choose_resize_context() const
+      ExecutionContext choose_resize_context() const
       {
-        if (m_modified != Context::NONE)
+        if (m_modified != ExecutionContext::NONE)
         {
           return m_modified;
         }
 
         if (m_host_data != nullptr && m_device_data == nullptr)
         {
-          return Context::HOST;
+          return ExecutionContext::HOST;
         }
 
         if (m_device_data != nullptr && m_host_data == nullptr)
         {
-          return Context::DEVICE;
+          return ExecutionContext::DEVICE;
         }
 
-        return ContextManager::getInstance().getContext() == Context::DEVICE
-            ? Context::DEVICE
-            : Context::HOST;
+        return ExecutionContextManager::getInstance().getContext() == ExecutionContext::DEVICE
+            ? ExecutionContext::DEVICE
+            : ExecutionContext::HOST;
       }
 
       /*!
@@ -467,11 +467,11 @@ namespace chai::expt
        * \param touch Whether the caller intends to modify the returned data.
        *
        * \return Pointer to data in \p context, or nullptr if \p context is
-       *         Context::NONE or the array is empty.
+       *         ExecutionContext::NONE or the array is empty.
        */
-      ElementType* data(Context context, bool touch = true)
+      ElementType* data(ExecutionContext context, bool touch = true)
       {
-        if (context == Context::NONE || m_size == 0)
+        if (context == ExecutionContext::NONE || m_size == 0)
         {
           return nullptr;
         }
@@ -490,7 +490,7 @@ namespace chai::expt
         if (source != nullptr &&
             (destination_was_missing || m_modified == otherContext(context)))
         {
-          ContextManager::getInstance().synchronize(m_modified);
+          ExecutionContextManager::getInstance().synchronize(m_modified);
           ::umpire::ResourceManager::getInstance().copy(destination, source, size_bytes);
         }
 
@@ -500,7 +500,7 @@ namespace chai::expt
         }
         else
         {
-          m_modified = Context::NONE;
+          m_modified = ExecutionContext::NONE;
         }
 
         return destination;

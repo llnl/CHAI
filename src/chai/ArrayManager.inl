@@ -166,12 +166,7 @@ void ArrayManager::setAllocator(ExecutionSpace space, umpire::Allocator &allocat
 
 CHAI_INLINE
 bool ArrayManager::syncIfNeeded() {
-  if (!m_synced_since_last_kernel) {
-     synchronize();
-     m_synced_since_last_kernel = true;
-     return true;
-  }
-  return false;
+  return ExecutionContextManager::getInstance().syncIfNeeded();
 }
 } // end of namespace chai
 
