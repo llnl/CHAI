@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 namespace chai::expt
@@ -145,7 +146,7 @@ namespace chai::expt
         other.m_host_data = nullptr;
         other.m_device_data = nullptr;
         other.m_size = 0;
-        other.m_modified = Context::NONE;
+        other.m_modified.reset();
       }
 
       /*!
@@ -172,7 +173,7 @@ namespace chai::expt
           other.m_host_data = nullptr;
           other.m_device_data = nullptr;
           other.m_size = 0;
-          other.m_modified = Context::NONE;
+          other.m_modified.reset();
         }
 
         return *this;
@@ -213,7 +214,7 @@ namespace chai::expt
         if (m_host_data == nullptr && m_device_data == nullptr)
         {
           m_size = new_size;
-          m_modified = Context::NONE;
+          m_modified.reset();
           return;
         }
 
@@ -262,12 +263,13 @@ namespace chai::expt
        *
        * \param touch Whether the caller intends to modify the returned data.
        *
-       * \return Pointer to the managed data, or nullptr if the current context
-       *         is Context::NONE or the array is empty.
+       * \return Pointer to the managed data, or nullptr if there is no current
+       *         context or the array is empty.
        */
       ElementType* data(bool touch)
       {
-        return data(ContextManager::getInstance().getContext(), touch);
+        const std::optional<Context> context = ContextManager::getInstance().getContext();
+        return context.has_value() ? data(*context, touch) : nullptr;
       }
 
     private:
@@ -289,7 +291,7 @@ namespace chai::expt
       /*!
        * \brief Context that holds the most recently modified copy.
        */
-      Context m_modified{Context::NONE};
+      std::optional<Context> m_modified{};
 
       /*!
        * \brief Allocator used for host memory allocations.
@@ -321,7 +323,10 @@ namespace chai::expt
           return;
         }
 
-        ContextManager::getInstance().synchronize(other.m_modified);
+        if (other.m_modified.has_value())
+        {
+          ContextManager::getInstance().synchronize(*other.m_modified);
+        }
 
         if (other.m_host_data != nullptr)
         {
@@ -344,7 +349,7 @@ namespace chai::expt
         deallocate(m_host_data, m_host_allocator);
         deallocate(m_device_data, m_device_allocator);
         m_size = 0;
-        m_modified = Context::NONE;
+        m_modified.reset();
       }
 
       /*!
@@ -418,9 +423,9 @@ namespace chai::expt
        */
       Context choose_resize_context() const
       {
-        if (m_modified != Context::NONE)
+        if (m_modified.has_value())
         {
-          return m_modified;
+          return *m_modified;
         }
 
         if (m_host_data != nullptr && m_device_data == nullptr)
@@ -433,7 +438,8 @@ namespace chai::expt
           return Context::DEVICE;
         }
 
-        return ContextManager::getInstance().getContext() == Context::DEVICE
+        const std::optional<Context> context = ContextManager::getInstance().getContext();
+        return context.has_value() && *context == Context::DEVICE
             ? Context::DEVICE
             : Context::HOST;
       }
@@ -466,12 +472,11 @@ namespace chai::expt
        * \param context Desired context.
        * \param touch Whether the caller intends to modify the returned data.
        *
-       * \return Pointer to data in \p context, or nullptr if \p context is
-       *         Context::NONE or the array is empty.
+       * \return Pointer to data in \p context, or nullptr if the array is empty.
        */
       ElementType* data(Context context, bool touch = true)
       {
-        if (context == Context::NONE || m_size == 0)
+        if (m_size == 0)
         {
           return nullptr;
         }
@@ -488,9 +493,13 @@ namespace chai::expt
         }
 
         if (source != nullptr &&
-            (destination_was_missing || m_modified == otherContext(context)))
+            (destination_was_missing ||
+             (m_modified.has_value() && *m_modified == otherContext(context))))
         {
-          ContextManager::getInstance().synchronize(m_modified);
+          if (m_modified.has_value())
+          {
+            ContextManager::getInstance().synchronize(*m_modified);
+          }
           ::umpire::ResourceManager::getInstance().copy(destination, source, size_bytes);
         }
 
@@ -500,7 +509,7 @@ namespace chai::expt
         }
         else
         {
-          m_modified = Context::NONE;
+          m_modified.reset();
         }
 
         return destination;

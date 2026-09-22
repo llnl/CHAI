@@ -18,7 +18,8 @@ Context
 
 Currently, there are two execution contexts that are handled by CHAI. These are represented in the `Context` enum class.
 The `HOST` enum value represents synchronous execution on a CPU. The `DEVICE` enum value represents asynchronous execution on a GPU.
-Both NVIDIA and AMD GPUs are supported.
+Both NVIDIA and AMD GPUs are supported. The absence of an active execution context is represented by an empty
+``std::optional<Context>`` rather than an enum value.
 
 --------------
 ContextManager
@@ -28,6 +29,8 @@ Implicitly managing data coherence requires managing some global state. This is 
 When an application enters an execution context, it uses `ContextManager` to set the current context. `ContextManager` also
 tracks which contexts may need synchronization. CHAI data structures can query `ContextManager` to update data coherence and
 inform `ContextManager` of needed synchronization or synchronization that has been performed.
+``getContext()`` returns ``std::optional<Context>``. Calling ``resetContext()`` clears only the active context, while ``reset()``
+also resets synchronization bookkeeping.
 
 Note: It is much faster for `ContextManager` to track synchronization than to repeatedly call `cudaDeviceSynchronize()` or `hipDeviceSynchronize()`.
 
@@ -39,11 +42,11 @@ Note: It is much faster for `ContextManager` to track synchronization than to re
 
   contextManager.setContext(::chai::expt::Context::HOST);
   // Use CHAI data structures in the HOST context...
-  contextManager.setContext(::chai::expt::Context::NONE);
+  contextManager.resetContext();
 
   contextManager.setContext(::chai::expt::Context::DEVICE);
   // Use CHAI data structures in the DEVICE context...
-  contextManager.setContext(::chai::expt::Context::NONE);
+  contextManager.resetContext();
    
 ------------
 ContextGuard

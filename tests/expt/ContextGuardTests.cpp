@@ -12,28 +12,34 @@
 // and restores the previous context on destruction.
 TEST(ContextGuard, HOST) {
   ::chai::expt::ContextManager& contextManager = ::chai::expt::ContextManager::getInstance();
-  ::chai::expt::Context context = contextManager.getContext();
+  contextManager.reset();
 
   {
     ::chai::expt::Context tempContext = ::chai::expt::Context::HOST;
     ::chai::expt::ContextGuard contextGuard(tempContext);
-    EXPECT_EQ(contextManager.getContext(), tempContext);
+    ASSERT_TRUE(contextManager.getContext().has_value());
+    EXPECT_EQ(*contextManager.getContext(), tempContext);
   }
 
-  EXPECT_EQ(contextManager.getContext(), context);
+  EXPECT_FALSE(contextManager.getContext().has_value());
 }
 
 // Test that ContextGuard updates the current context in scope
 // and restores the previous context on destruction.
 TEST(ContextGuard, DEVICE) {
   ::chai::expt::ContextManager& contextManager = ::chai::expt::ContextManager::getInstance();
-  ::chai::expt::Context context = contextManager.getContext();
+  contextManager.reset();
+  contextManager.setContext(::chai::expt::Context::HOST);
 
   {
     ::chai::expt::Context tempContext = ::chai::expt::Context::DEVICE;
     ::chai::expt::ContextGuard contextGuard(tempContext);
-    EXPECT_EQ(contextManager.getContext(), tempContext);
+    ASSERT_TRUE(contextManager.getContext().has_value());
+    EXPECT_EQ(*contextManager.getContext(), tempContext);
   }
 
-  EXPECT_EQ(contextManager.getContext(), context);
+  ASSERT_TRUE(contextManager.getContext().has_value());
+  EXPECT_EQ(*contextManager.getContext(), ::chai::expt::Context::HOST);
+  EXPECT_FALSE(contextManager.isSynchronized(::chai::expt::Context::DEVICE));
+  contextManager.reset();
 }

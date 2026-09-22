@@ -11,6 +11,8 @@
 #include "chai/expt/Context.hpp"
 #include "chai/expt/ContextManager.hpp"
 
+#include <optional>
+
 namespace chai::expt {
   /*!
    * \brief RAII guard that temporarily sets the active Context and restores the
@@ -30,7 +32,14 @@ namespace chai::expt {
        * \brief Restores the Context that was active when this guard was created.
        */
       ~ContextGuard() {
-        m_context_manager.setContext(m_saved_context);
+        if (m_saved_context.has_value())
+        {
+          m_context_manager.setContext(*m_saved_context);
+        }
+        else
+        {
+          m_context_manager.resetContext();
+        }
       }
 
     private:
@@ -42,7 +51,7 @@ namespace chai::expt {
       /*!
        * Context that was active at guard construction time.
        */
-      Context m_saved_context{m_context_manager.getContext()};
+      std::optional<Context> m_saved_context{m_context_manager.getContext()};
   };  // class ContextGuard
 }  // namespace chai::expt
 

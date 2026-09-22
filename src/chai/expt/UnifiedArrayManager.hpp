@@ -13,6 +13,7 @@
 #include "umpire/ResourceManager.hpp"
 #include "umpire/TypedAllocator.hpp"
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 namespace chai::expt
@@ -95,9 +96,9 @@ namespace chai::expt
         // TODO: Investigate resize in the last modified space.
         Context context = Context::HOST;
 
-        if (context != m_modified)
+        if (m_modified.has_value() && context != *m_modified)
         {
-          ContextManager::getInstance().synchronize(m_modified);
+          ContextManager::getInstance().synchronize(*m_modified);
         }
 
         m_storage.resize(new_size);
@@ -122,11 +123,11 @@ namespace chai::expt
       ElementType* data(bool touch)
       {
         ContextManager& contextManager = ContextManager::getInstance();
-        Context context = contextManager.getContext();
+        std::optional<Context> context = contextManager.getContext();
 
-        if (context != m_modified)
+        if (m_modified.has_value() && context != m_modified)
         {
-          contextManager.synchronize(m_modified);
+          contextManager.synchronize(*m_modified);
         }
 
         if (touch)
@@ -135,7 +136,7 @@ namespace chai::expt
         }
         else
         {
-          m_modified = Context::NONE;
+          m_modified.reset();
         }
 
         return m_storage.empty() ? nullptr : m_storage.data();
@@ -153,7 +154,7 @@ namespace chai::expt
        * \note Used to determine when synchronization is required before accessing
        *       the underlying storage from the current context.
        */
-      Context m_modified{Context::NONE};
+      std::optional<Context> m_modified{};
   };  // class UnifiedArrayManager
 }  // namespace chai::expt
 

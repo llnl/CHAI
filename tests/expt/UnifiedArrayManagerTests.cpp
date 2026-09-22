@@ -153,6 +153,13 @@ TEST_F(UnifiedArrayManagerTest, DefaultConstructor)
   }
 }
 
+TEST_F(UnifiedArrayManagerTest, DataWithoutContext)
+{
+  UnifiedArrayManager<int> manager{1};
+  EXPECT_NE(manager.data(false), nullptr);
+  EXPECT_NE(manager.data(true), nullptr);
+}
+
 TEST_F(UnifiedArrayManagerTest, AllocatorConstructor)
 {
   constexpr std::size_t N = 32;
@@ -571,4 +578,3 @@ TEST_F(UnifiedArrayManagerTest, DeviceWriteThenDeviceRead)
   // Clean up
   free_managed(out);
 }
-

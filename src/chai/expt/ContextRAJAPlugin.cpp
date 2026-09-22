@@ -10,9 +10,11 @@
 #include "chai/expt/ContextManager.hpp"
 #include "chai/expt/ContextRAJAPlugin.hpp"
 
+#include <optional>
+
 namespace chai::expt {
   void ContextRAJAPlugin::preCapture(const ::RAJA::util::PluginContext& p) {
-    Context context = Context::NONE;
+    std::optional<Context> context{};
 
     switch (p.platform) {
       case ::RAJA::Platform::host:
@@ -29,14 +31,20 @@ namespace chai::expt {
         break;
 #endif
       default:
-        context = Context::NONE;
         break;
     }
 
-    ContextManager::getInstance().setContext(context);
+    if (context.has_value())
+    {
+      ContextManager::getInstance().setContext(*context);
+    }
+    else
+    {
+      ContextManager::getInstance().resetContext();
+    }
   }
 
   void ContextRAJAPlugin::postCapture(const ::RAJA::util::PluginContext&) {
-    ContextManager::getInstance().setContext(Context::NONE);
+    ContextManager::getInstance().resetContext();
   }
 }  // namespace chai::expt

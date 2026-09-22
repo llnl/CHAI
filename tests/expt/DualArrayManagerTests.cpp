@@ -153,6 +153,13 @@ TEST_F(DualArrayManagerTest, DefaultConstructor)
   }
 }
 
+TEST_F(DualArrayManagerTest, DataWithoutContext)
+{
+  DualArrayManager<int> manager{1};
+  EXPECT_EQ(manager.data(false), nullptr);
+  EXPECT_EQ(manager.data(true), nullptr);
+}
+
 TEST_F(DualArrayManagerTest, AllocatorConstructor)
 {
   constexpr std::size_t N = 32;
