@@ -19,6 +19,10 @@ The format of this file is based on [Keep a Changelog](http://keepachangelog.com
 
 ### Changed
 - The `isSlice` function can now be called on `const chai::ManagedArray<T>`.
+- The RAJA plugin now manages both legacy execution spaces and experimental
+  contexts through shared state. Experimental users should enable
+  `CHAI_ENABLE_RAJA_PLUGIN`; the separate experimental plugin option and API
+  have been removed.
 
 ## [Version 2026.07.0] - Release date 2025-08-11
 

@@ -8,41 +8,33 @@
 
 #include "chai/RajaExecutionSpacePlugin.hpp"
 
-#include "chai/ArrayManager.hpp"
+#include "chai/detail/ExecutionContext.hpp"
 
 namespace chai {
-
-RajaExecutionSpacePlugin::RajaExecutionSpacePlugin()
-{
-}
 
 void
 RajaExecutionSpacePlugin::preCapture(const RAJA::util::PluginContext& p)
 {
-  if (!m_arraymanager) {
-    m_arraymanager = chai::ArrayManager::getInstance();
-  }
-
   switch (p.platform) {
     case RAJA::Platform::host:
-      m_arraymanager->setExecutionSpace(chai::CPU); break;
+      detail::setExecutionSpace(chai::CPU); break;
 #if defined(CHAI_ENABLE_CUDA)
     case RAJA::Platform::cuda:
-      m_arraymanager->setExecutionSpace(chai::GPU); break;
+      detail::setExecutionSpace(chai::GPU); break;
 #endif
 #if defined(CHAI_ENABLE_HIP)
     case RAJA::Platform::hip:
-      m_arraymanager->setExecutionSpace(chai::GPU); break;
+      detail::setExecutionSpace(chai::GPU); break;
 #endif
     default:
-      m_arraymanager->setExecutionSpace(chai::NONE);
+      detail::setExecutionSpace(chai::NONE);
   }
 }
 
 void
 RajaExecutionSpacePlugin::postCapture(const RAJA::util::PluginContext&)
 {
-  m_arraymanager->setExecutionSpace(chai::NONE);
+  detail::setExecutionSpace(chai::NONE);
 }
 
 }
@@ -74,4 +66,3 @@ namespace chai {
   void linkRajaPlugin() {}
 
 }
-

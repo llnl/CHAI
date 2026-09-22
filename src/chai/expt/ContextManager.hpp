@@ -9,14 +9,8 @@
 #define CHAI_CONTEXT_MANAGER_HPP
 
 #include "chai/config.hpp"
+#include "chai/detail/ExecutionContext.hpp"
 #include "chai/expt/Context.hpp"
-#include "camp/helpers.hpp"
-
-#if defined(CHAI_ENABLE_CUDA)
-#include <cuda_runtime.h>
-#elif defined(CHAI_ENABLE_HIP)
-#include <hip/hip_runtime.h>
-#endif
 
 namespace chai::expt {
   /*!
@@ -54,7 +48,15 @@ namespace chai::expt {
        */
       Context getContext() const
       {
-        return m_context;
+        switch (::chai::detail::getExecutionSpace())
+        {
+          case CPU:
+            return Context::HOST;
+          case GPU:
+            return Context::DEVICE;
+          default:
+            return Context::NONE;
+        }
       }
 
       /*!
@@ -64,11 +66,17 @@ namespace chai::expt {
        */
       void setContext(Context context)
       {
-        m_context = context;
-
-        if (context == Context::DEVICE)
+        switch (context)
         {
-          m_device_synchronized = false;
+          case Context::HOST:
+            ::chai::detail::setExecutionSpace(CPU);
+            break;
+          case Context::DEVICE:
+            ::chai::detail::setExecutionSpace(GPU);
+            break;
+          default:
+            ::chai::detail::setExecutionSpace(NONE);
+            break;
         }
       }
 
@@ -77,14 +85,8 @@ namespace chai::expt {
        */
       void synchronize(Context context)
       {
-        if (context == Context::DEVICE && !m_device_synchronized)
-        {
-#if defined(CHAI_ENABLE_CUDA)
-          CAMP_CUDA_API_INVOKE_AND_CHECK(cudaDeviceSynchronize);
-#elif defined(CHAI_ENABLE_HIP)
-          CAMP_HIP_API_INVOKE_AND_CHECK(hipDeviceSynchronize);
-#endif
-          m_device_synchronized = true;
+        if (context == Context::DEVICE) {
+          ::chai::detail::syncIfNeeded();
         }
       }
 
@@ -93,7 +95,9 @@ namespace chai::expt {
        */
       bool isSynchronized(Context context) const
       {
-        return context == Context::DEVICE ? m_device_synchronized : true;
+        return context == Context::DEVICE
+          ? ::chai::detail::isDeviceSynchronized()
+          : true;
       }
 
       /*!
@@ -101,7 +105,7 @@ namespace chai::expt {
        */
       void setDeviceSynchronized(bool synchronized)
       {
-        m_device_synchronized = synchronized;
+        ::chai::detail::setDeviceSynchronized(synchronized);
       }
 
       /*!
@@ -109,8 +113,7 @@ namespace chai::expt {
        */
       void reset()
       {
-        m_context = Context::NONE;
-        m_device_synchronized = true;
+        ::chai::detail::resetExecutionContext();
       }
 
     private:
@@ -121,20 +124,6 @@ namespace chai::expt {
        */
       ContextManager() = default;
 
-      /*!
-       * \brief Current context for the application.
-       *
-       * Defaults to NONE until explicitly set.
-       */
-      Context m_context{Context::NONE};
-
-      /*!
-       * \brief Device synchronization state.
-       *
-       * True if the device context has been synchronized since the last time the
-       * context was set to DEVICE.
-       */
-      bool m_device_synchronized{true};
   };  // class ContextManager
 }  // namespace chai::expt
 

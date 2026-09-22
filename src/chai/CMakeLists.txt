@@ -23,8 +23,12 @@ set (chai_headers
   PointerRecord.hpp
   Types.hpp)
 
+set (chai_detail_headers
+  detail/ExecutionContext.hpp)
+
 set (chai_sources
-  ArrayManager.cpp)
+  ArrayManager.cpp
+  ExecutionContext.cpp)
 
 if(CHAI_DISABLE_RM)
   set(chai_headers
@@ -92,23 +96,15 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
   endif ()
 endif ()
 
-if (CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
-  set (chai_headers
-    ${chai_headers}
-    expt/ContextRAJAPlugin.hpp)
-
-  set (chai_sources
-    ${chai_sources}
-    expt/ContextRAJAPlugin.cpp)
-endif()
-
 blt_add_library(
   NAME chai
   SOURCES ${chai_sources}
-  HEADERS ${chai_headers}
+  HEADERS ${chai_headers} ${chai_detail_headers}
   DEPENDS_ON ${chai_depends})
 
 install(FILES ${chai_headers} DESTINATION include/chai/)
+
+install(FILES ${chai_detail_headers} DESTINATION include/chai/detail/)
 
 install(FILES ../util/forall.hpp DESTINATION include/chai/util/)
 

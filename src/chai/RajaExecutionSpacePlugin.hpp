@@ -11,20 +11,15 @@
 
 namespace chai {
 
-class ArrayManager;
-
 class RajaExecutionSpacePlugin :
   public RAJA::util::PluginStrategy
 {
   public:
-    RajaExecutionSpacePlugin();
+    RajaExecutionSpacePlugin() = default;
 
     void preCapture(const RAJA::util::PluginContext& p) override;
 
     void postCapture(const RAJA::util::PluginContext& p) override;
-
-  private:
-    chai::ArrayManager* m_arraymanager{nullptr};
 };
 
 void linkRajaPlugin();
