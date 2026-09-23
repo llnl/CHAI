@@ -23,9 +23,6 @@ namespace chai
 namespace expt
 {
 
-thread_local ExecutionSpace SharedPtrManager::m_current_execution_space;
-thread_local bool SharedPtrManager::m_synced_since_last_kernel = false;
-
 msp_pointer_record SharedPtrManager::s_null_record = msp_pointer_record();
 
 SharedPtrManager* SharedPtrManager::getInstance()
@@ -41,7 +38,6 @@ SharedPtrManager::SharedPtrManager() :
  //,m_callbacks_active{true}
 {
   m_pointer_map.clear();
-  m_current_execution_space = NONE;
   m_default_allocation_space = CPU;
 
   m_allocators[CPU] =
@@ -149,24 +145,21 @@ void SharedPtrManager::deregisterPointer(msp_pointer_record* record, bool deregi
 void SharedPtrManager::setExecutionSpace(ExecutionSpace space)
 {
 #if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-   if (isGPUSimMode()) {
-      space = chai::GPU;
-   }
+  if (isGPUSimMode() && space != NONE) {
+    space = GPU;
+  }
 #endif
 
   CHAI_LOG(Debug, "Setting execution space to " << space);
 
-  if (chai::GPU == space) {
-    m_synced_since_last_kernel = false;
-  }
-
 #if defined(CHAI_THIN_GPU_ALLOCATE)
- if (chai::CPU == space) {
+  if (space == CPU) {
     syncIfNeeded();
- }
+  }
 #endif
 
-  m_current_execution_space = space;
+  ExecutionContextManager::getInstance().setContext(
+      toExecutionContext(space));
 }
 
 void* SharedPtrManager::move(void* pointer,
@@ -175,7 +168,7 @@ void* SharedPtrManager::move(void* pointer,
 {
   // Check for default arg (NONE)
   if (space == NONE) {
-    space = m_current_execution_space;
+    space = getExecutionSpace();
   }
 
   if (space == NONE) {
@@ -189,12 +182,13 @@ void* SharedPtrManager::move(void* pointer,
 
 ExecutionSpace SharedPtrManager::getExecutionSpace()
 {
-  return m_current_execution_space;
+  return toExecutionSpace(
+      ExecutionContextManager::getInstance().getContext());
 }
 
 void SharedPtrManager::registerTouch(msp_pointer_record* pointer_record)
 {
-  registerTouch(pointer_record, m_current_execution_space);
+  registerTouch(pointer_record, getExecutionSpace());
 }
 
 void SharedPtrManager::registerTouch(msp_pointer_record* pointer_record,

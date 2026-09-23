@@ -8,6 +8,7 @@
 #define CHAI_ExecutionSpaces_HPP
 
 #include "chai/config.hpp"
+#include "chai/ExecutionContext.hpp"
 
 namespace chai
 {
@@ -43,6 +44,30 @@ enum ExecutionSpace {
   ,PINNED
 #endif
 };
+
+inline ExecutionContext toExecutionContext(ExecutionSpace space)
+{
+  switch (space) {
+    case CPU:
+      return ExecutionContext::HOST;
+    case GPU:
+      return ExecutionContext::DEVICE;
+    default:
+      return ExecutionContext::NONE;
+  }
+}
+
+inline ExecutionSpace toExecutionSpace(ExecutionContext context)
+{
+  switch (context) {
+    case ExecutionContext::HOST:
+      return CPU;
+    case ExecutionContext::DEVICE:
+      return GPU;
+    default:
+      return NONE;
+  }
+}
 
 }  // end of namespace chai
 

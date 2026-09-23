@@ -7,6 +7,11 @@
 
 #include "chai/ArrayManager.hpp"
 #include "chai/ExecutionContextManager.hpp"
+#include "chai/config.hpp"
+
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+#include "chai/SharedPtrManager.hpp"
+#endif
 
 #include "gtest/gtest.h"
 
@@ -77,3 +82,27 @@ TEST(ExecutionContextManager, SharesStateWithArrayManager)
 
   context_manager.reset();
 }
+
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+TEST(ExecutionContextManager, SharesStateWithSharedPtrManager)
+{
+  auto& context_manager = chai::ExecutionContextManager::getInstance();
+  auto* shared_ptr_manager = chai::expt::SharedPtrManager::getInstance();
+  context_manager.reset();
+
+  context_manager.setContext(chai::ExecutionContext::HOST);
+  EXPECT_EQ(shared_ptr_manager->getExecutionSpace(), chai::CPU);
+
+  shared_ptr_manager->setExecutionSpace(chai::GPU);
+  EXPECT_EQ(context_manager.getContext(), chai::ExecutionContext::DEVICE);
+  EXPECT_FALSE(context_manager.isSynchronized(chai::ExecutionContext::DEVICE));
+
+  context_manager.setDeviceSynchronized(true);
+  EXPECT_FALSE(shared_ptr_manager->syncIfNeeded());
+
+  shared_ptr_manager->setExecutionSpace(chai::NONE);
+  EXPECT_EQ(context_manager.getContext(), chai::ExecutionContext::NONE);
+
+  context_manager.reset();
+}
+#endif

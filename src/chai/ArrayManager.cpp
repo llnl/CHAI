@@ -18,33 +18,6 @@
 
 namespace chai
 {
-namespace
-{
-ExecutionContext toExecutionContext(ExecutionSpace space)
-{
-  switch (space) {
-    case CPU:
-      return ExecutionContext::HOST;
-    case GPU:
-      return ExecutionContext::DEVICE;
-    default:
-      return ExecutionContext::NONE;
-  }
-}
-
-ExecutionSpace toExecutionSpace(ExecutionContext context)
-{
-  switch (context) {
-    case ExecutionContext::HOST:
-      return CPU;
-    case ExecutionContext::DEVICE:
-      return GPU;
-    default:
-      return NONE;
-  }
-}
-}  // namespace
-
 PointerRecord ArrayManager::s_null_record = PointerRecord();
 
 ArrayManager* ArrayManager::getInstance()
