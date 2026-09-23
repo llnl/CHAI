@@ -18,13 +18,21 @@ TEST(ExecutionContextManager, SingletonInstance)
   EXPECT_EQ(&manager1, &manager2);
 }
 
-TEST(ExecutionContextManager, DefaultAndHostContexts)
+TEST(ExecutionContextManager, DefaultContext)
 {
   auto& manager = chai::ExecutionContextManager::getInstance();
   manager.reset();
 
   EXPECT_EQ(manager.getContext(), chai::ExecutionContext::NONE);
   EXPECT_TRUE(manager.isSynchronized(chai::ExecutionContext::NONE));
+
+  manager.reset();
+}
+
+TEST(ExecutionContextManager, HostContext)
+{
+  auto& manager = chai::ExecutionContextManager::getInstance();
+  manager.reset();
 
   manager.setContext(chai::ExecutionContext::HOST);
   EXPECT_EQ(manager.getContext(), chai::ExecutionContext::HOST);
