@@ -61,6 +61,52 @@ TEST(ExecutionContextManager, DeviceSynchronization)
   manager.reset();
 }
 
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+TEST(ExecutionContextManager, GPUSimulationMapsHostToDevice)
+{
+  auto& manager = chai::ExecutionContextManager::getInstance();
+  manager.reset();
+
+  manager.setGPUSimMode(true);
+  manager.setContext(chai::ExecutionContext::HOST);
+  EXPECT_EQ(manager.getContext(), chai::ExecutionContext::DEVICE);
+  EXPECT_FALSE(manager.isSynchronized(chai::ExecutionContext::DEVICE));
+
+  manager.setContext(chai::ExecutionContext::NONE);
+  EXPECT_EQ(manager.getContext(), chai::ExecutionContext::NONE);
+
+  manager.setGPUSimMode(false);
+  manager.setContext(chai::ExecutionContext::HOST);
+  EXPECT_EQ(manager.getContext(), chai::ExecutionContext::HOST);
+
+  manager.reset();
+}
+
+TEST(ExecutionContextManager, SharesGPUSimulationStateWithManagers)
+{
+  auto& context_manager = chai::ExecutionContextManager::getInstance();
+  auto* array_manager = chai::ArrayManager::getInstance();
+  context_manager.reset();
+
+  array_manager->setGPUSimMode(true);
+  EXPECT_TRUE(context_manager.isGPUSimMode());
+
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+  auto* shared_ptr_manager = chai::expt::SharedPtrManager::getInstance();
+  EXPECT_TRUE(shared_ptr_manager->isGPUSimMode());
+
+  shared_ptr_manager->setGPUSimMode(false);
+  EXPECT_FALSE(array_manager->isGPUSimMode());
+  shared_ptr_manager->setGPUSimMode(true);
+#endif
+
+  array_manager->setExecutionSpace(chai::CPU);
+  EXPECT_EQ(context_manager.getContext(), chai::ExecutionContext::DEVICE);
+
+  context_manager.reset();
+}
+#endif
+
 TEST(ExecutionContextManager, SharesStateWithArrayManager)
 {
   auto& context_manager = chai::ExecutionContextManager::getInstance();
