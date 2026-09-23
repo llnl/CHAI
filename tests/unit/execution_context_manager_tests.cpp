@@ -46,7 +46,7 @@ TEST(ExecutionContextManager, HostContext)
   manager.reset();
 }
 
-TEST(ExecutionContextManager, DeviceSynchronization)
+TEST(ExecutionContextManager, DeviceContext)
 {
   auto& manager = chai::ExecutionContextManager::getInstance();
   manager.reset();
