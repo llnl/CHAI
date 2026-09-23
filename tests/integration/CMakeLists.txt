@@ -77,7 +77,7 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
 
   blt_add_executable(
     NAME execution_context_raja_plugin_tests
-    SOURCES execution_context_raja_plugin_tests.cpp
+    SOURCES ExecutionContextRAJAPluginTests.cpp
     DEPENDS_ON ${raja_test_depends})
 
   blt_add_test(

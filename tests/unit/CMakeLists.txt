@@ -38,7 +38,7 @@ blt_add_test(
 
 blt_add_executable(
   NAME execution_context_manager_tests
-  SOURCES execution_context_manager_tests.cpp
+  SOURCES ExecutionContextManagerTests.cpp
   DEPENDS_ON ${chai_unit_test_depends})
 
 blt_add_test(
@@ -47,7 +47,7 @@ blt_add_test(
 
 blt_add_executable(
   NAME execution_context_guard_tests
-  SOURCES execution_context_guard_tests.cpp
+  SOURCES ExecutionContextGuardTests.cpp
   DEPENDS_ON ${chai_unit_test_depends})
 
 blt_add_test(
