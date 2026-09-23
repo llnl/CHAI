@@ -322,12 +322,18 @@ public:
   /*!
    * \brief Turn the GPU simulation mode on or off.
    */
-  void setGPUSimMode(bool gpuSimMode) { m_gpu_sim_mode = gpuSimMode; }
+  void setGPUSimMode(bool gpuSimMode)
+  {
+    ExecutionContextManager::getInstance().setGPUSimMode(gpuSimMode);
+  }
 
   /*!
    * \brief Return true if GPU simulation mode is on, false otherwise.
    */
-  bool isGPUSimMode() { return m_gpu_sim_mode; }
+  bool isGPUSimMode()
+  {
+    return ExecutionContextManager::getInstance().isGPUSimMode();
+  }
 #endif
 
   /*!
@@ -427,13 +433,6 @@ private:
    * \brief Controls whether or not callbacks are called.
    */
   bool m_callbacks_active;
-
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-  /*!
-   * Used to determine whether the execution space should be CPU or GPU.
-   */
-  bool m_gpu_sim_mode = false;
-#endif
 
 };
 

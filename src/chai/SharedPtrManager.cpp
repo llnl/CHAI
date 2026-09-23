@@ -144,11 +144,9 @@ void SharedPtrManager::deregisterPointer(msp_pointer_record* record, bool deregi
 
 void SharedPtrManager::setExecutionSpace(ExecutionSpace space)
 {
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-  if (isGPUSimMode() && space != NONE) {
-    space = GPU;
-  }
-#endif
+  auto& context_manager = ExecutionContextManager::getInstance();
+  context_manager.setContext(toExecutionContext(space));
+  space = toExecutionSpace(context_manager.getContext());
 
   CHAI_LOG(Debug, "Setting execution space to " << space);
 
@@ -157,9 +155,6 @@ void SharedPtrManager::setExecutionSpace(ExecutionSpace space)
     syncIfNeeded();
   }
 #endif
-
-  ExecutionContextManager::getInstance().setContext(
-      toExecutionContext(space));
 }
 
 void* SharedPtrManager::move(void* pointer,

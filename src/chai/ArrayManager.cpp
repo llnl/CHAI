@@ -177,11 +177,9 @@ void * ArrayManager::frontOfAllocation(void * pointer) {
 
 void ArrayManager::setExecutionSpace(ExecutionSpace space)
 {
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-  if (isGPUSimMode() && space != NONE) {
-    space = GPU;
-  }
-#endif
+  auto& context_manager = ExecutionContextManager::getInstance();
+  context_manager.setContext(toExecutionContext(space));
+  space = toExecutionSpace(context_manager.getContext());
 
   CHAI_LOG(Debug, "Setting execution space to " << space);
 
@@ -190,9 +188,6 @@ void ArrayManager::setExecutionSpace(ExecutionSpace space)
     syncIfNeeded();
   }
 #endif
-
-  ExecutionContextManager::getInstance().setContext(
-      toExecutionContext(space));
 }
 
 void* ArrayManager::move(void* pointer,

@@ -64,10 +64,19 @@ namespace chai {
       /*!
        * \brief Set the current context.
        *
+       * In GPU simulation mode, non-NONE contexts are treated as DEVICE.
+       *
        * Setting the context to DEVICE marks the device as not synchronized.
        */
       void setContext(ExecutionContext context)
       {
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+        if (m_gpu_sim_mode && context != ExecutionContext::NONE)
+        {
+          context = ExecutionContext::DEVICE;
+        }
+#endif
+
         m_context = context;
 
         if (context == ExecutionContext::DEVICE)
@@ -108,6 +117,24 @@ namespace chai {
         m_device_synchronized = synchronized;
       }
 
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+      /*!
+       * \brief Turn GPU simulation mode on or off.
+       */
+      void setGPUSimMode(bool gpu_sim_mode)
+      {
+        m_gpu_sim_mode = gpu_sim_mode;
+      }
+
+      /*!
+       * \brief Return whether GPU simulation mode is active.
+       */
+      bool isGPUSimMode() const
+      {
+        return m_gpu_sim_mode;
+      }
+#endif
+
       /*!
        * \brief Reset manager state to defaults.
        */
@@ -115,6 +142,9 @@ namespace chai {
       {
         m_context = ExecutionContext::NONE;
         m_device_synchronized = true;
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+        m_gpu_sim_mode = false;
+#endif
       }
 
     private:
@@ -139,6 +169,13 @@ namespace chai {
        * context was set to DEVICE.
        */
       bool m_device_synchronized{true};
+
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+      /*!
+       * \brief Whether host execution should simulate device execution.
+       */
+      bool m_gpu_sim_mode{false};
+#endif
   };  // class ExecutionContextManager
 }  // namespace chai
 
