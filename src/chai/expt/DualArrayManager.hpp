@@ -452,11 +452,26 @@ namespace chai::expt
           return;
         }
 
-        std::unique_ptr<ElementType[]> initialized{new ElementType[count]()};
-        ::umpire::ResourceManager::getInstance().copy(
-            destination,
-            initialized.get(),
-            count * sizeof(ElementType));
+        auto& resource_manager = ::umpire::ResourceManager::getInstance();
+        umpire::Allocator host_allocator = resource_manager.getAllocator("HOST");
+        ElementType* initialized = static_cast<ElementType*>(
+            host_allocator.allocate(count * sizeof(ElementType)));
+
+        try
+        {
+          std::uninitialized_value_construct_n(initialized, count);
+          resource_manager.copy(
+              destination,
+              initialized,
+              count * sizeof(ElementType));
+        }
+        catch (...)
+        {
+          host_allocator.deallocate(initialized);
+          throw;
+        }
+
+        host_allocator.deallocate(initialized);
       }
 
       /*!
