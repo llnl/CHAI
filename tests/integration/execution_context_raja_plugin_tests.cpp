@@ -90,25 +90,6 @@ TEST(ExecutionContextRAJAPlugin, HOST)
   EXPECT_EQ(tester.getExecutionSpace(), chai::NONE);
 }
 
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-TEST(ExecutionContextRAJAPlugin, GPUSimulation)
-{
-  auto& context_manager = chai::ExecutionContextManager::getInstance();
-  context_manager.reset();
-  context_manager.setGPUSimMode(true);
-  ExecutionContextRAJAPluginTester tester{};
-
-  RAJA::forall<RAJA::seq_exec>(RAJA::TypedRangeSegment<int>(0, 1),
-      [=](int) {
-        EXPECT_EQ(tester.getContext(), chai::ExecutionContext::DEVICE);
-        EXPECT_EQ(tester.getExecutionSpace(), chai::GPU);
-      });
-
-  EXPECT_EQ(context_manager.getContext(), chai::ExecutionContext::NONE);
-  context_manager.reset();
-}
-#endif
-
 #if defined(CHAI_ENABLE_CUDA)
 CUDA_TEST(ExecutionContextRAJAPlugin, CUDA)
 {
@@ -152,5 +133,24 @@ TEST(ExecutionContextRAJAPlugin, HIP)
   EXPECT_EQ(tester.getExecutionSpace(), chai::NONE);
 
   CAMP_HIP_API_INVOKE_AND_CHECK(hipFree, (void*)result);
+}
+#endif
+
+#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
+TEST(ExecutionContextRAJAPlugin, GPUSimulation)
+{
+  auto& context_manager = chai::ExecutionContextManager::getInstance();
+  context_manager.reset();
+  context_manager.setGPUSimMode(true);
+  ExecutionContextRAJAPluginTester tester{};
+
+  RAJA::forall<RAJA::seq_exec>(RAJA::TypedRangeSegment<int>(0, 1),
+      [=](int) {
+        EXPECT_EQ(tester.getContext(), chai::ExecutionContext::DEVICE);
+        EXPECT_EQ(tester.getExecutionSpace(), chai::GPU);
+      });
+
+  EXPECT_EQ(context_manager.getContext(), chai::ExecutionContext::NONE);
+  context_manager.reset();
 }
 #endif
