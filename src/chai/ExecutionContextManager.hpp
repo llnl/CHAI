@@ -12,6 +12,10 @@
 #include "chai/ExecutionContext.hpp"
 #include "camp/helpers.hpp"
 
+#if defined(CHAI_ENABLE_RAJA_PLUGIN)
+#include "chai/pluginLinker.hpp"
+#endif
+
 #if defined(CHAI_ENABLE_CUDA)
 #include <cuda_runtime.h>
 #elif defined(CHAI_ENABLE_HIP)

@@ -13,10 +13,6 @@
 #include "umpire/Allocator.hpp"
 #include "umpire/ResourceManager.hpp"
 
-#if defined(CHAI_ENABLE_RAJA_PLUGIN)
-#include "chai/pluginLinker.hpp"
-#endif
-
 #include <algorithm>
 #include <cstddef>
 #include <memory>
