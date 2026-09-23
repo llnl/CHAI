@@ -401,7 +401,6 @@ private:
    * \brief Controls whether or not callbacks are called.
    */
   //bool m_callbacks_active;
-
 };
 
 }  // end of namespace expt
