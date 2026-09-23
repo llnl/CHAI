@@ -18,9 +18,6 @@
 
 namespace chai
 {
-thread_local ExecutionSpace ArrayManager::m_current_execution_space;
-thread_local bool ArrayManager::m_synced_since_last_kernel = false;
-
 PointerRecord ArrayManager::s_null_record = PointerRecord();
 
 ArrayManager* ArrayManager::getInstance()
@@ -36,7 +33,6 @@ ArrayManager::ArrayManager() :
   m_callbacks_active{true}
 {
   m_pointer_map.clear();
-  m_current_execution_space = NONE;
 #if defined(CHAI_THIN_GPU_ALLOCATE)
   m_default_allocation_space = GPU;
 #else
@@ -181,25 +177,17 @@ void * ArrayManager::frontOfAllocation(void * pointer) {
 
 void ArrayManager::setExecutionSpace(ExecutionSpace space)
 {
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-   if (isGPUSimMode() && chai::NONE != space) {
-      space = chai::GPU;
-   }
-#endif
+  auto& context_manager = ExecutionContextManager::getInstance();
+  context_manager.setContext(toExecutionContext(space));
+  space = toExecutionSpace(context_manager.getContext());
 
   CHAI_LOG(Debug, "Setting execution space to " << space);
 
-  if (chai::GPU == space) {
-    m_synced_since_last_kernel = false;
-  }
-
 #if defined(CHAI_THIN_GPU_ALLOCATE)
- if (chai::CPU == space) {
+  if (space == CPU) {
     syncIfNeeded();
- }
+  }
 #endif
-
-  m_current_execution_space = space;
 }
 
 void* ArrayManager::move(void* pointer,
@@ -208,7 +196,7 @@ void* ArrayManager::move(void* pointer,
 {
   // Check for default arg (NONE)
   if (space == NONE) {
-    space = m_current_execution_space;
+    space = getExecutionSpace();
   }
 
   if (space == NONE) {
@@ -222,12 +210,13 @@ void* ArrayManager::move(void* pointer,
 
 ExecutionSpace ArrayManager::getExecutionSpace()
 {
-  return m_current_execution_space;
+  return toExecutionSpace(
+      ExecutionContextManager::getInstance().getContext());
 }
 
 void ArrayManager::registerTouch(PointerRecord* pointer_record)
 {
-  registerTouch(pointer_record, m_current_execution_space);
+  registerTouch(pointer_record, getExecutionSpace());
 }
 
 void ArrayManager::registerTouch(PointerRecord* pointer_record,

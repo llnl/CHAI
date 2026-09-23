@@ -8,10 +8,11 @@
 #ifndef CHAI_UNIFIED_ARRAY_MANAGER_HPP
 #define CHAI_UNIFIED_ARRAY_MANAGER_HPP
 
-#include "chai/expt/Context.hpp"
-#include "chai/expt/ContextManager.hpp"
+#include "chai/ExecutionContext.hpp"
+#include "chai/ExecutionContextManager.hpp"
 #include "umpire/ResourceManager.hpp"
 #include "umpire/TypedAllocator.hpp"
+
 #include <cstddef>
 #include <vector>
 
@@ -93,11 +94,11 @@ namespace chai::expt
       void resize(std::size_t new_size)
       {
         // TODO: Investigate resize in the last modified space.
-        Context context = Context::HOST;
+        ExecutionContext context = ExecutionContext::HOST;
 
         if (context != m_modified)
         {
-          ContextManager::getInstance().synchronize(m_modified);
+          ExecutionContextManager::getInstance().synchronize(m_modified);
         }
 
         m_storage.resize(new_size);
@@ -121,8 +122,8 @@ namespace chai::expt
        */
       ElementType* data(bool touch)
       {
-        ContextManager& contextManager = ContextManager::getInstance();
-        Context context = contextManager.getContext();
+        ExecutionContextManager& contextManager = ExecutionContextManager::getInstance();
+        ExecutionContext context = contextManager.getContext();
 
         if (context != m_modified)
         {
@@ -135,7 +136,7 @@ namespace chai::expt
         }
         else
         {
-          m_modified = Context::NONE;
+          m_modified = ExecutionContext::NONE;
         }
 
         return m_storage.empty() ? nullptr : m_storage.data();
@@ -148,12 +149,12 @@ namespace chai::expt
       StorageType m_storage{AllocatorType(::umpire::ResourceManager::getInstance().getAllocator("UM"))};
 
       /*!
-       * \brief Context in which the managed storage was most recently modified.
+       * \brief ExecutionContext in which the managed storage was most recently modified.
        *
        * \note Used to determine when synchronization is required before accessing
        *       the underlying storage from the current context.
        */
-      Context m_modified{Context::NONE};
+      ExecutionContext m_modified{ExecutionContext::NONE};
   };  // class UnifiedArrayManager
 }  // namespace chai::expt
 
