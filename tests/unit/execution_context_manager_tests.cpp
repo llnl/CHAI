@@ -10,8 +10,6 @@
 
 #include "gtest/gtest.h"
 
-#include <thread>
-
 TEST(ExecutionContextManager, SingletonInstance)
 {
   auto& manager1 = chai::ExecutionContextManager::getInstance();
@@ -70,22 +68,4 @@ TEST(ExecutionContextManager, SharesStateWithArrayManager)
   EXPECT_EQ(context_manager.getContext(), chai::ExecutionContext::NONE);
 
   context_manager.reset();
-}
-
-TEST(ExecutionContextManager, StateIsThreadLocal)
-{
-  auto& manager = chai::ExecutionContextManager::getInstance();
-  manager.reset();
-  manager.setContext(chai::ExecutionContext::HOST);
-
-  std::thread worker([]() {
-    auto& worker_manager = chai::ExecutionContextManager::getInstance();
-    EXPECT_EQ(worker_manager.getContext(), chai::ExecutionContext::NONE);
-    worker_manager.setContext(chai::ExecutionContext::DEVICE);
-    EXPECT_EQ(worker_manager.getContext(), chai::ExecutionContext::DEVICE);
-  });
-  worker.join();
-
-  EXPECT_EQ(manager.getContext(), chai::ExecutionContext::HOST);
-  manager.reset();
 }

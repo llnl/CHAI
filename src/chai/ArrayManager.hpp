@@ -14,6 +14,10 @@
 
 #include "chai/PointerRecord.hpp"
 
+#if defined(CHAI_ENABLE_RAJA_PLUGIN)
+#include "chai/pluginLinker.hpp"
+#endif
+
 #include <unordered_map>
 
 #include "umpire/Allocator.hpp"

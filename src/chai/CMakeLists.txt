@@ -27,8 +27,7 @@ set (chai_headers
   Types.hpp)
 
 set (chai_sources
-  ArrayManager.cpp
-  ExecutionContextManager.cpp)
+  ArrayManager.cpp)
 
 if(CHAI_DISABLE_RM)
   set(chai_headers
@@ -80,7 +79,8 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
 
   set (chai_sources
     ${chai_sources}
-    ExecutionContextRAJAPlugin.cpp)
+    ExecutionContextRAJAPlugin.cpp
+    ExecutionContextRAJAPluginRegistration.cpp)
 
   set (chai_depends
     ${chai_depends}

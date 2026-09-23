@@ -11,27 +11,37 @@
 #include "chai/ExecutionContext.hpp"
 #include "chai/ExecutionContextManager.hpp"
 
-namespace chai
-{
+namespace chai {
   /*!
-   * \brief RAII guard that temporarily sets the active execution context.
+   * \brief RAII guard that temporarily sets the active ExecutionContext and restores the
+   *        previously active ExecutionContext upon destruction.
    */
-  class ExecutionContextGuard
-  {
+  class ExecutionContextGuard {
     public:
-      explicit ExecutionContextGuard(ExecutionContext context)
-      {
+      /*!
+       * \brief Sets the active ExecutionContext for the lifetime of this guard.
+       * \param context The ExecutionContext to set as active.
+       */
+      explicit ExecutionContextGuard(ExecutionContext context) {
         m_context_manager.setContext(context);
       }
 
-      ~ExecutionContextGuard()
-      {
+      /*!
+       * \brief Restores the ExecutionContext that was active when this guard was created.
+       */
+      ~ExecutionContextGuard() {
         m_context_manager.setContext(m_saved_context);
       }
 
     private:
-      ExecutionContextManager& m_context_manager{
-          ExecutionContextManager::getInstance()};
+      /*!
+       * \brief Reference to the global ExecutionContextManager instance.
+       */
+      ExecutionContextManager& m_context_manager{ExecutionContextManager::getInstance()};
+
+      /*!
+       * ExecutionContext that was active at guard construction time.
+       */
       ExecutionContext m_saved_context{m_context_manager.getContext()};
   };  // class ExecutionContextGuard
 }  // namespace chai

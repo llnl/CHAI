@@ -13,8 +13,7 @@ Execution Contexts
 CHAI uses an execution context to identify where work is about to execute.
 ``chai::ExecutionContext`` provides ``HOST``, ``DEVICE``, and ``NONE`` values.
 The ``chai::ExecutionContextManager`` singleton stores the current context and
-tracks whether asynchronous device work needs to be synchronized. Its state is
-local to each host thread.
+tracks whether asynchronous device work needs to be synchronized.
 
 Applications can set the context directly:
 

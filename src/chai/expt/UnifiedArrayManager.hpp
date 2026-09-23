@@ -12,6 +12,11 @@
 #include "chai/ExecutionContextManager.hpp"
 #include "umpire/ResourceManager.hpp"
 #include "umpire/TypedAllocator.hpp"
+
+#if defined(CHAI_ENABLE_RAJA_PLUGIN)
+#include "chai/pluginLinker.hpp"
+#endif
+
 #include <cstddef>
 #include <vector>
 

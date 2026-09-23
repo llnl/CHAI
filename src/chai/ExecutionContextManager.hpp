@@ -8,16 +8,20 @@
 #ifndef CHAI_EXECUTION_CONTEXT_MANAGER_HPP
 #define CHAI_EXECUTION_CONTEXT_MANAGER_HPP
 
+#include "chai/config.hpp"
 #include "chai/ExecutionContext.hpp"
-#include "chai/Types.hpp"
+#include "camp/helpers.hpp"
 
-namespace chai
-{
+#if defined(CHAI_ENABLE_CUDA)
+#include <cuda_runtime.h>
+#elif defined(CHAI_ENABLE_HIP)
+#include <hip/hip_runtime.h>
+#endif
+
+namespace chai {
   /*!
-   * \brief Singleton that manages the current execution context and device
-   *        synchronization state.
-   *
-   * The managed state is local to each host thread.
+   * \brief Singleton class for managing the current context
+   *        and context synchronization across the application.
    */
   class ExecutionContextManager
   {
@@ -25,45 +29,112 @@ namespace chai
       /*!
        * \brief Get the singleton instance.
        */
-      CHAISHAREDDLL_API static ExecutionContextManager& getInstance();
+      static ExecutionContextManager& getInstance()
+      {
+        static ExecutionContextManager s_instance;
+        return s_instance;
+      }
 
+      /*!
+       * \brief Disable copy construction.
+       *
+       * ExecutionContextManager is a singleton and must not be copied.
+       */
       ExecutionContextManager(const ExecutionContextManager&) = delete;
+
+      /*!
+       * \brief Disable copy assignment.
+       *
+       * ExecutionContextManager is a singleton and must not be assigned.
+       */
       ExecutionContextManager& operator=(const ExecutionContextManager&) = delete;
 
       /*!
-       * \brief Get the current execution context.
+       * \brief Get the current context.
        */
-      CHAISHAREDDLL_API ExecutionContext getContext() const;
+      ExecutionContext getContext() const
+      {
+        return m_context;
+      }
 
       /*!
-       * \brief Set the current execution context.
+       * \brief Set the current context.
        *
        * Setting the context to DEVICE marks the device as not synchronized.
        */
-      CHAISHAREDDLL_API void setContext(ExecutionContext context);
+      void setContext(ExecutionContext context)
+      {
+        m_context = context;
+
+        if (context == ExecutionContext::DEVICE)
+        {
+          m_device_synchronized = false;
+        }
+      }
 
       /*!
-       * \brief Synchronize the requested context if needed.
+       * \brief Synchronize the requested context (no-op if already synchronized).
        */
-      CHAISHAREDDLL_API void synchronize(ExecutionContext context);
+      void synchronize(ExecutionContext context)
+      {
+        if (context == ExecutionContext::DEVICE && !m_device_synchronized)
+        {
+#if defined(CHAI_ENABLE_CUDA)
+          CAMP_CUDA_API_INVOKE_AND_CHECK(cudaDeviceSynchronize);
+#elif defined(CHAI_ENABLE_HIP)
+          CAMP_HIP_API_INVOKE_AND_CHECK(hipDeviceSynchronize);
+#endif
+          m_device_synchronized = true;
+        }
+      }
 
       /*!
        * \brief Query whether the requested context is synchronized.
        */
-      CHAISHAREDDLL_API bool isSynchronized(ExecutionContext context) const;
+      bool isSynchronized(ExecutionContext context) const
+      {
+        return context == ExecutionContext::DEVICE ? m_device_synchronized : true;
+      }
 
       /*!
-       * \brief Explicitly set the synchronization state for DEVICE.
+       * \brief Explicitly set the synchronization state for the DEVICE context.
        */
-      CHAISHAREDDLL_API void setDeviceSynchronized(bool synchronized);
+      void setDeviceSynchronized(bool synchronized)
+      {
+        m_device_synchronized = synchronized;
+      }
 
       /*!
-       * \brief Reset the current thread's execution context state.
+       * \brief Reset manager state to defaults.
        */
-      CHAISHAREDDLL_API void reset();
+      void reset()
+      {
+        m_context = ExecutionContext::NONE;
+        m_device_synchronized = true;
+      }
 
     private:
+      /*!
+       * \brief Default constructor.
+       *
+       * Private to enforce singleton access via getInstance().
+       */
       ExecutionContextManager() = default;
+
+      /*!
+       * \brief Current context for the application.
+       *
+       * Defaults to NONE until explicitly set.
+       */
+      ExecutionContext m_context{ExecutionContext::NONE};
+
+      /*!
+       * \brief Device synchronization state.
+       *
+       * True if the device context has been synchronized since the last time the
+       * context was set to DEVICE.
+       */
+      bool m_device_synchronized{true};
   };  // class ExecutionContextManager
 }  // namespace chai
 
