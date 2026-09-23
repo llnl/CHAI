@@ -76,16 +76,16 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
     PUBLIC ${PROJECT_BINARY_DIR}/include)
 
   blt_add_executable(
-    NAME execution-context-raja-plugin-tests
+    NAME execution_context_raja_plugin_tests
     SOURCES execution_context_raja_plugin_tests.cpp
     DEPENDS_ON ${raja_test_depends})
 
   blt_add_test(
-    NAME execution-context-raja-plugin-tests
-    COMMAND execution-context-raja-plugin-tests)
+    NAME execution_context_raja_plugin_test
+    COMMAND execution_context_raja_plugin_tests)
 
   target_include_directories(
-    execution-context-raja-plugin-tests
+    execution_context_raja_plugin_tests
     PUBLIC ${PROJECT_BINARY_DIR}/include)
 
   if (CHAI_ENABLE_RAJA_NESTED_TEST)
