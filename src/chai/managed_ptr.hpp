@@ -11,9 +11,7 @@
 
 #if defined(CHAI_ENABLE_MANAGED_PTR)
 
-#if !defined(CHAI_DISABLE_RM) || defined(CHAI_THIN_GPU_ALLOCATE)
 #include "chai/ArrayManager.hpp"
-#endif
 
 #include "chai/ChaiMacros.hpp"
 #include "chai/ExecutionSpaces.hpp"
@@ -1501,6 +1499,18 @@ CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
       }
    }
 
+   ///
+   /// @brief Allocates and placement-constructs an object with CHAI's default host allocator.
+   /// @param[in] args Arguments passed to the object's constructor.
+   /// @return The allocated host object.
+   ///
+   template <typename T,
+             typename... Args>
+   CHAI_HOST T* default_allocate_on_host(Args&&... args) {
+      return allocate_on_host<T>(ArrayManager::getInstance()->getAllocator(CPU),
+                                 std::forward<Args>(args)...);
+   }
+
    /// Destroys and returns an allocator-backed host object to its allocator.
    template <typename T>
    CHAI_HOST void destroy_allocated_on_host(T* pointer, umpire::Allocator allocator) {
@@ -1646,6 +1656,18 @@ CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
          }
          throw;
       }
+   }
+
+   ///
+   /// @brief Allocates and placement-constructs an object with CHAI's default device allocator.
+   /// @param[in] args Arguments passed to the object's constructor.
+   /// @return The allocated device object.
+   ///
+   template <typename T,
+             typename... Args>
+   CHAI_HOST T* default_allocate_on_device(Args&&... args) {
+      return allocate_on_device<T>(ArrayManager::getInstance()->getAllocator(GPU),
+                                   std::forward<Args>(args)...);
    }
 
    template <typename T>
@@ -1888,6 +1910,29 @@ CHAI_HOST ManagedPtrOfPointerTableUnpacker<T> unpack_pointer_table(
          destroy_allocated_on_host(cpuPointer, cpuAllocator);
          throw;
       }
+   }
+
+   ///
+   /// @brief Allocates an object in every execution space supported by this CHAI build.
+   /// @details Uses the CPU and, when enabled, GPU allocators currently registered with
+   ///          ArrayManager. This is the allocator-backed counterpart to make_managed.
+   /// @param[in] args Arguments passed to the object constructor.
+   /// @return A managed pointer that owns the allocated object copies.
+   ///
+   template <typename T,
+             typename... Args>
+   CHAI_HOST managed_ptr<T> default_allocate_managed(Args&&... args)
+   {
+      auto* arrayManager = ArrayManager::getInstance();
+#if (defined(CHAI_GPUCC) || defined(CHAI_ENABLE_GPU_SIMULATION_MODE)) && defined(CHAI_ENABLE_MANAGED_PTR_ON_GPU)
+      return allocate_managed<T>({CPU, GPU},
+                                 {arrayManager->getAllocator(CPU),
+                                  arrayManager->getAllocator(GPU)},
+                                 std::forward<Args>(args)...);
+#else
+      return allocate_managed<T>({CPU}, {arrayManager->getAllocator(CPU)},
+                                 std::forward<Args>(args)...);
+#endif
    }
 
    ///
