@@ -46,17 +46,17 @@ blt_add_test(
   NAME ContextGuardTests
   COMMAND ContextGuardTests)
 
-if(CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
+if(CHAI_ENABLE_RAJA_PLUGIN)
   blt_add_executable(
-    NAME ContextRAJAPluginTests
-    SOURCES ContextRAJAPluginTests.cpp
+    NAME RajaExecutionSpacePluginTests
+    SOURCES RajaExecutionSpacePluginTests.cpp
     HEADERS ${chai_expt_test_headers}
     INCLUDES ${PROJECT_BINARY_DIR}/include
     DEPENDS_ON ${chai_expt_test_depends})
 
   blt_add_test(
-    NAME ContextRAJAPluginTests
-    COMMAND ContextRAJAPluginTests)
+    NAME RajaExecutionSpacePluginTests
+    COMMAND RajaExecutionSpacePluginTests)
 endif()
 
 blt_add_executable(

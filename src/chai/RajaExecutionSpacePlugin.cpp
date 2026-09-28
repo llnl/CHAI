@@ -9,6 +9,10 @@
 #include "chai/RajaExecutionSpacePlugin.hpp"
 
 #include "chai/ArrayManager.hpp"
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+#include "chai/expt/Context.hpp"
+#include "chai/expt/ContextManager.hpp"
+#endif
 
 namespace chai {
 
@@ -25,17 +29,32 @@ RajaExecutionSpacePlugin::preCapture(const RAJA::util::PluginContext& p)
 
   switch (p.platform) {
     case RAJA::Platform::host:
-      m_arraymanager->setExecutionSpace(chai::CPU); break;
+      m_arraymanager->setExecutionSpace(chai::CPU);
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+      chai::expt::ContextManager::getInstance().setContext(chai::expt::Context::HOST);
+#endif
+      break;
 #if defined(CHAI_ENABLE_CUDA)
     case RAJA::Platform::cuda:
-      m_arraymanager->setExecutionSpace(chai::GPU); break;
+      m_arraymanager->setExecutionSpace(chai::GPU);
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+      chai::expt::ContextManager::getInstance().setContext(chai::expt::Context::DEVICE);
+#endif
+      break;
 #endif
 #if defined(CHAI_ENABLE_HIP)
     case RAJA::Platform::hip:
-      m_arraymanager->setExecutionSpace(chai::GPU); break;
+      m_arraymanager->setExecutionSpace(chai::GPU);
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+      chai::expt::ContextManager::getInstance().setContext(chai::expt::Context::DEVICE);
+#endif
+      break;
 #endif
     default:
       m_arraymanager->setExecutionSpace(chai::NONE);
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+      chai::expt::ContextManager::getInstance().setContext(chai::expt::Context::NONE);
+#endif
   }
 }
 
@@ -43,6 +62,9 @@ void
 RajaExecutionSpacePlugin::postCapture(const RAJA::util::PluginContext&)
 {
   m_arraymanager->setExecutionSpace(chai::NONE);
+#if defined(CHAI_ENABLE_EXPERIMENTAL)
+  chai::expt::ContextManager::getInstance().setContext(chai::expt::Context::NONE);
+#endif
 }
 
 }
@@ -66,7 +88,7 @@ PluginStrategy::PluginStrategy() = default;
 // Register plugin with RAJA
 static RAJA::util::PluginRegistry::add<chai::RajaExecutionSpacePlugin> P(
      "RajaExecutionSpacePlugin",
-     "Plugin to set CHAI execution space based on RAJA execution platform");
+     "Plugin to set CHAI manager state based on RAJA execution platform");
 
 
 namespace chai {
@@ -74,4 +96,3 @@ namespace chai {
   void linkRajaPlugin() {}
 
 }
-
