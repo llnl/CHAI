@@ -6,8 +6,8 @@
 ##############################################################################
 
 # Set up software versions
-set(CLANG_VERSION "14.0.6" CACHE PATH "")
-set(GCC_VERSION "12.1.1" CACHE PATH "")
+set(CLANG_VERSION "19.1.3" CACHE PATH "")
+set(GCC_VERSION "13.3.1" CACHE PATH "")
 
 # Set up compilers
 set(COMPILER_BASE "/usr/tce/packages/clang/clang-${CLANG_VERSION}-magic" CACHE PATH "")
