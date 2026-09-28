@@ -166,10 +166,10 @@ void ArrayManager::setAllocator(ExecutionSpace space, umpire::Allocator &allocat
 
 CHAI_INLINE
 bool ArrayManager::syncIfNeeded() {
-  if (!m_synced_since_last_kernel) {
-     synchronize();
-     m_synced_since_last_kernel = true;
-     return true;
+  auto& context_manager = ExecutionContextManager::getInstance();
+  if (!context_manager.isSynchronized(ExecutionContext::DEVICE)) {
+    context_manager.synchronize(ExecutionContext::DEVICE);
+    return true;
   }
   return false;
 }

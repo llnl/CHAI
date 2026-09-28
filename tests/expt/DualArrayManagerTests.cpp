@@ -6,9 +6,9 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "chai/config.hpp"
-#include "chai/expt/Context.hpp"
-#include "chai/expt/ContextGuard.hpp"
-#include "chai/expt/ContextManager.hpp"
+#include "chai/ExecutionContext.hpp"
+#include "chai/ExecutionContextGuard.hpp"
+#include "chai/ExecutionContextManager.hpp"
 #include "chai/expt/DualArrayManager.hpp"
 #include "camp/helpers.hpp"
 #include "gtest/gtest.h"
@@ -24,9 +24,9 @@
 #endif
 
 namespace {
-  using ::chai::expt::Context;
-  using ::chai::expt::ContextGuard;
-  using ::chai::expt::ContextManager;
+  using ::chai::ExecutionContext;
+  using ::chai::ExecutionContextGuard;
+  using ::chai::ExecutionContextManager;
   using ::chai::expt::DualArrayManager;
 
   template <typename T>
@@ -131,12 +131,12 @@ namespace {
     protected:
       void SetUp() override
       {
-        ContextManager::getInstance().reset();
+        ExecutionContextManager::getInstance().reset();
       }
 
       void TearDown() override
       {
-        ContextManager::getInstance().reset();
+        ExecutionContextManager::getInstance().reset();
       }
   };
 }  // namespace
@@ -147,7 +147,7 @@ TEST_F(DualArrayManagerTest, DefaultConstructor)
   EXPECT_EQ(manager.size(), 0);
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     EXPECT_EQ(manager.data(false), nullptr);
     EXPECT_EQ(manager.data(true), nullptr);
   }
@@ -164,7 +164,7 @@ TEST_F(DualArrayManagerTest, AllocatorConstructor)
   EXPECT_EQ(manager.size(), N);
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
     for (std::size_t i = 0; i < N; ++i)
@@ -175,7 +175,7 @@ TEST_F(DualArrayManagerTest, AllocatorConstructor)
   }
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     for (std::size_t i = 0; i < N; ++i)
@@ -191,7 +191,7 @@ TEST_F(DualArrayManagerTest, ResizeToZero)
   EXPECT_EQ(manager.size(), 10);
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     EXPECT_NE(manager.data(false), nullptr);
   }
 
@@ -199,7 +199,7 @@ TEST_F(DualArrayManagerTest, ResizeToZero)
   EXPECT_EQ(manager.size(), 0);
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     EXPECT_EQ(manager.data(false), nullptr);
     EXPECT_EQ(manager.data(true), nullptr);
   }
@@ -213,7 +213,7 @@ TEST_F(DualArrayManagerTest, ResizeSmaller)
   DualArrayManager<int> manager{N0};
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
     for (std::size_t i = 0; i < N0; ++i)
@@ -226,7 +226,7 @@ TEST_F(DualArrayManagerTest, ResizeSmaller)
   EXPECT_EQ(manager.size(), N1);
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     for (std::size_t i = 0; i < N1; ++i)
@@ -244,7 +244,7 @@ TEST_F(DualArrayManagerTest, ResizeLarger)
   DualArrayManager<int> manager{N0};
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
     for (std::size_t i = 0; i < N0; ++i)
@@ -257,7 +257,7 @@ TEST_F(DualArrayManagerTest, ResizeLarger)
   EXPECT_EQ(manager.size(), N1);
 
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -281,7 +281,7 @@ TEST_F(DualArrayManagerTest, HostReadThenHostRead)
 
   // Host read
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -293,7 +293,7 @@ TEST_F(DualArrayManagerTest, HostReadThenHostRead)
 
   // Host read
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -312,7 +312,7 @@ TEST_F(DualArrayManagerTest, HostWriteThenHostRead)
 
   // Host write
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
 
@@ -324,7 +324,7 @@ TEST_F(DualArrayManagerTest, HostWriteThenHostRead)
 
   // Host read
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -343,7 +343,7 @@ TEST_F(DualArrayManagerTest, HostReadThenDeviceRead)
 
   // Host read
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -359,7 +359,7 @@ TEST_F(DualArrayManagerTest, HostReadThenDeviceRead)
 
   // Device read
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     launch_copy(data, out, N);
@@ -386,7 +386,7 @@ TEST_F(DualArrayManagerTest, HostWriteThenDeviceRead)
 
   // Host write
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
 
@@ -402,7 +402,7 @@ TEST_F(DualArrayManagerTest, HostWriteThenDeviceRead)
 
   // Device read
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     launch_copy(data, out, N);
@@ -432,7 +432,7 @@ TEST_F(DualArrayManagerTest, DeviceReadThenHostRead)
 
   // Device read
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     launch_copy(data, out, N);
@@ -440,7 +440,7 @@ TEST_F(DualArrayManagerTest, DeviceReadThenHostRead)
 
   // Host read
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -473,7 +473,7 @@ TEST_F(DualArrayManagerTest, DeviceWriteThenHostRead)
 
   // Device write
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
     launch_increment(data, N);
@@ -481,7 +481,7 @@ TEST_F(DualArrayManagerTest, DeviceWriteThenHostRead)
 
   // Host read
   {
-    ContextGuard guard{Context::HOST};
+    ExecutionContextGuard guard{ExecutionContext::HOST};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
 
@@ -505,7 +505,7 @@ TEST_F(DualArrayManagerTest, DeviceReadThenDeviceRead)
 
   // Device read
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     launch_copy(data, out0, N);
@@ -513,7 +513,7 @@ TEST_F(DualArrayManagerTest, DeviceReadThenDeviceRead)
 
   // Device read
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     launch_copy(data, out1, N);
@@ -542,7 +542,7 @@ TEST_F(DualArrayManagerTest, DeviceWriteThenDeviceRead)
 
   // Device write
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     int* data = manager.data(true);
     ASSERT_NE(data, nullptr);
     launch_increment(data, N);
@@ -554,7 +554,7 @@ TEST_F(DualArrayManagerTest, DeviceWriteThenDeviceRead)
 
   // Device read
   {
-    ContextGuard guard{Context::DEVICE};
+    ExecutionContextGuard guard{ExecutionContext::DEVICE};
     const int* data = manager.data(false);
     ASSERT_NE(data, nullptr);
     launch_copy(data, out, N);

@@ -5,20 +5,20 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef CHAI_CONTEXT_HPP
-#define CHAI_CONTEXT_HPP
+#ifndef CHAI_EXECUTION_CONTEXT_HPP
+#define CHAI_EXECUTION_CONTEXT_HPP
 
-namespace chai::expt
+namespace chai
 {
   /*!
    * \brief Execution context identifier.
    */
-  enum class Context
+  enum class ExecutionContext
   {
     NONE = 0,   /*!< No context. */
     HOST = 1,   /*!< Host (CPU) context. */
     DEVICE = 2  /*!< Device (GPU/accelerator) context. */
-  };  // enum class Context
-}  // namespace chai::expt
+  };  // enum class ExecutionContext
+}  // namespace chai
 
-#endif  // CHAI_CONTEXT_HPP
+#endif  // CHAI_EXECUTION_CONTEXT_HPP

@@ -12,88 +12,15 @@ Experimental Design
 
 CHAI provides data structures that implicitly manage coherence across multiple execution contexts.
 
--------
-Context
--------
+------------------
+Execution contexts
+------------------
 
-Currently, there are two execution contexts that are handled by CHAI. These are represented in the `Context` enum class.
-The `HOST` enum value represents synchronous execution on a CPU. The `DEVICE` enum value represents asynchronous execution on a GPU.
-Both NVIDIA and AMD GPUs are supported.
-
---------------
-ContextManager
---------------
-
-Implicitly managing data coherence requires managing some global state. This is handled by a singleton called `ContextManager`.
-When an application enters an execution context, it uses `ContextManager` to set the current context. `ContextManager` also
-tracks which contexts may need synchronization. CHAI data structures can query `ContextManager` to update data coherence and
-inform `ContextManager` of needed synchronization or synchronization that has been performed.
-
-Note: It is much faster for `ContextManager` to track synchronization than to repeatedly call `cudaDeviceSynchronize()` or `hipDeviceSynchronize()`.
-
-.. code-block:: cpp
-
-  #include "chai/expt/ContextManager.hpp"
-   
-  ::chai::expt::ContextManager& contextManager = ::chai::expt::ContextManager::getInstance();
-
-  contextManager.setContext(::chai::expt::Context::HOST);
-  // Use CHAI data structures in the HOST context...
-  contextManager.setContext(::chai::expt::Context::NONE);
-
-  contextManager.setContext(::chai::expt::Context::DEVICE);
-  // Use CHAI data structures in the DEVICE context...
-  contextManager.setContext(::chai::expt::Context::NONE);
-   
-------------
-ContextGuard
-------------
-
-It is easy to forget to reset the current context or even to forget the current context
-when writing code. Similar to `std::lock_guard`, CHAI provides `ContextGuard` that sets
-the active context and then resets it upon destruction. This is the recommended approach.
-
-.. code-block:: cpp
-
-  #include "chai/expt/ContextGuard.hpp"
-
-  {
-    ::chai::expt::ContextGuard contextGuard{::chai::expt::Context::HOST};
-    // Use CHAI data structures in the HOST context...
-  }
-
-  {
-    ::chai::expt::ContextGuard contextGuard{::chai::expt::Context::DEVICE};
-    // Use CHAI data structures in the DEVICE context...
-  }
-
------------------
-ContextRAJAPlugin
------------------
-
-In an application that also uses RAJA, CHAI provides a RAJA plugin, `ContextRAJAPlugin`,
-that implicitly manages the context in calls to RAJA. To enable this plugin, configure with
-`-DCHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN=ON` and register the plugin. In the future, registration
-may be handled by CHAI.
-
-.. code-block:: cpp
-
-  #include "chai/expt/ContextRAJAPlugin.hpp"
-  #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
-   
-  ::RAJA::forall<::RAJA::seq_exec>(::RAJA::TypedRangeSegment<int>(0, N), [=] (int i) {
-    // Use CHAI data structures in the HOST context...
-  });
-
-  constexpr int BLOCK_SIZE = 256;
-
-  ::RAJA::forall<::RAJA::cuda_exec_async<BLOCK_SIZE>>(::RAJA::TypedRangeSegment<int>(0, N), [=] __device__ (int i) {
-    // Use CHAI data structures in the DEVICE context...
-  });
+The experimental array managers use CHAI's core ``ExecutionContext``,
+``ExecutionContextManager``, and ``ExecutionContextGuard`` APIs. See
+:ref:`execution_contexts` for usage and RAJA integration. When
+``CHAI_ENABLE_RAJA_PLUGIN`` is enabled, CHAI registers its execution-context
+plugin automatically.
 
 -------------------
 ManagedArrayPointer
@@ -108,13 +35,8 @@ shallow copies.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
   #include "chai/expt/ManagedArrayPointer.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
 
   // It's recommended to use an alias so that it is easy to swap out the array manager.
   template <typename T>
@@ -151,13 +73,8 @@ counted since clean up cannot be triggered from the device.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
   #include "chai/expt/ManagedArraySharedPointer.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
 
   // It's recommended to use an alias so that it is easy to swap out the array manager.
   template <typename T>
@@ -191,14 +108,9 @@ the view.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
   #include "chai/expt/ManagedArrayView.hpp"
   #include "chai/expt/UnifiedArrayManager.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
 
   // It's recommended to use an alias so that it is easy to swap out the array manager.
   template <typename T>
@@ -234,11 +146,11 @@ change to default initialization for performance reasons, such that
 numeric types will be left in an indeterminate state and nontrivial
 types will be default constructed.
 
-HostArrayManager does not rely on ContextManager, so it will behave
+HostArrayManager does not rely on ExecutionContextManager, so it will behave
 differently than other array managers. The major difference is that
 when used with ManagedArrayPointer, the ManagedArrayPointer does not
 need the update method called or to be copy constructed before it can
-be used on the host. Since it will not respect the current Context,
+be used on the host. Since it will not respect the current execution context,
 be extra careful to avoid using it on the device.
 
 .. code-block:: cpp
@@ -270,7 +182,7 @@ unified (managed) memory allocator (``UM``). Since unified memory is accessible
 from both CPU and GPU, CHAI can provide a single pointer value that is valid in
 both the ``HOST`` and ``DEVICE`` contexts.
 
-``UnifiedArrayManager`` relies on :ref:`ContextManager <experimental_design>` to
+``UnifiedArrayManager`` relies on :ref:`ExecutionContextManager <execution_contexts>` to
 avoid unnecessary full device synchronizations and to ensure correctness when
 switching between contexts:
 
@@ -285,15 +197,14 @@ of each element on the host (numeric types are initialized to zero).
 
 .. code-block:: cpp
 
-  #include "chai/expt/Context.hpp"
-  #include "chai/expt/ContextGuard.hpp"
+  #include "chai/ExecutionContextGuard.hpp"
   #include "chai/expt/UnifiedArrayManager.hpp"
 
   const std::size_t N = 1000000;
   ::chai::expt::UnifiedArrayManager<int> a{N};
 
   {
-    ::chai::expt::ContextGuard guard{::chai::expt::Context::HOST};
+    ::chai::ExecutionContextGuard guard{::chai::ExecutionContext::HOST};
     int* p = a.data(true);
     for (std::size_t i = 0; i < N; ++i) {
       p[i] = static_cast<int>(i);
@@ -301,13 +212,13 @@ of each element on the host (numeric types are initialized to zero).
   }
 
   {
-    ::chai::expt::ContextGuard guard{::chai::expt::Context::DEVICE};
+    ::chai::ExecutionContextGuard guard{::chai::ExecutionContext::DEVICE};
     int* p = a.data(true);
     // Launch a CUDA/HIP kernel that writes through p...
   }
 
   {
-    ::chai::expt::ContextGuard guard{::chai::expt::Context::HOST};
+    ::chai::ExecutionContextGuard guard{::chai::ExecutionContext::HOST};
     // If the most recent modification was on DEVICE, this call synchronizes first.
     const int* p = a.data(false);
     // Read through p...
@@ -323,7 +234,7 @@ single unified-memory pointer that is valid in both contexts. Instead, it
 allocates storage lazily in the requested context and copies data between the
 two allocations when the authoritative copy lives in the other context.
 
-``DualArrayManager`` relies on :ref:`ContextManager <experimental_design>` in
+``DualArrayManager`` relies on :ref:`ExecutionContextManager <execution_contexts>` in
 the same way as ``UnifiedArrayManager``:
 
 - ``data(touch=false)`` returns a pointer suitable for read access in the
@@ -343,15 +254,14 @@ in host and device memory rather than unified memory.
 
 .. code-block:: cpp
 
-  #include "chai/expt/Context.hpp"
-  #include "chai/expt/ContextGuard.hpp"
+  #include "chai/ExecutionContextGuard.hpp"
   #include "chai/expt/DualArrayManager.hpp"
 
   const std::size_t N = 1000000;
   ::chai::expt::DualArrayManager<int> a{N};
 
   {
-    ::chai::expt::ContextGuard guard{::chai::expt::Context::HOST};
+    ::chai::ExecutionContextGuard guard{::chai::ExecutionContext::HOST};
     int* p = a.data(true);
     for (std::size_t i = 0; i < N; ++i) {
       p[i] = static_cast<int>(i);
@@ -359,14 +269,14 @@ in host and device memory rather than unified memory.
   }
 
   {
-    ::chai::expt::ContextGuard guard{::chai::expt::Context::DEVICE};
+    ::chai::ExecutionContextGuard guard{::chai::ExecutionContext::DEVICE};
     int* p = a.data(true);
     // If the most recent modification was on HOST, this call copies to DEVICE first.
     // Launch a CUDA/HIP kernel that writes through p...
   }
 
   {
-    ::chai::expt::ContextGuard guard{::chai::expt::Context::HOST};
+    ::chai::ExecutionContextGuard guard{::chai::ExecutionContext::HOST};
     // If the most recent modification was on DEVICE, this call synchronizes and copies first.
     const int* p = a.data(false);
     // Read through p...

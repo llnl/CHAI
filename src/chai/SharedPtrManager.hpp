@@ -8,6 +8,7 @@
 #define CHAI_SharedPtrManager_HPP
 
 #include "chai/ChaiMacros.hpp"
+#include "chai/ExecutionContextManager.hpp"
 #include "chai/ExecutionSpaces.hpp"
 #include "chai/Types.hpp"
 
@@ -295,12 +296,18 @@ public:
   /*!
    * \brief Turn the GPU simulation mode on or off.
    */
-  void setGPUSimMode(bool gpuSimMode) { m_gpu_sim_mode = gpuSimMode; }
+  void setGPUSimMode(bool gpuSimMode)
+  {
+    ExecutionContextManager::getInstance().setGPUSimMode(gpuSimMode);
+  }
 
   /*!
    * \brief Return true if GPU simulation mode is on, false otherwise.
    */
-  bool isGPUSimMode() { return m_gpu_sim_mode; }
+  bool isGPUSimMode()
+  {
+    return ExecutionContextManager::getInstance().isGPUSimMode();
+  }
 #endif
 
   /*!
@@ -359,11 +366,6 @@ private:
 //     }
 //  }
 
-  /*!
-   * Current execution space.
-   */
-  static thread_local ExecutionSpace m_current_execution_space;
-
   /**
    * Default space for new allocations.
    */
@@ -399,20 +401,6 @@ private:
    * \brief Controls whether or not callbacks are called.
    */
   //bool m_callbacks_active;
-
-  /*!
-   * Whether or not a synchronize has been performed since the launch of the last
-   * GPU context
-   */
-  static thread_local bool m_synced_since_last_kernel;
-
-#if defined(CHAI_ENABLE_GPU_SIMULATION_MODE)
-  /*!
-   * Used by the RAJA plugin to determine whether the execution space should be
-   * CPU or GPU.
-   */
-  bool m_gpu_sim_mode = false;
-#endif
 };
 
 }  // end of namespace expt

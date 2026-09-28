@@ -5,12 +5,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef CHAI_CONTEXT_RAJA_PLUGIN_HPP
-#define CHAI_CONTEXT_RAJA_PLUGIN_HPP
+#ifndef CHAI_EXECUTION_CONTEXT_RAJA_PLUGIN_HPP
+#define CHAI_EXECUTION_CONTEXT_RAJA_PLUGIN_HPP
 
 #include "RAJA/util/PluginStrategy.hpp"
 
-namespace chai::expt {
+namespace chai {
   /*!
    * \brief Plugin that integrates CHAI context management with RAJA.
    *
@@ -24,7 +24,7 @@ namespace chai::expt {
    * context so that the CHAI data structures do not update data coherence in an
    * unexpected or unnecessary way. Finally, RAJA executes the lambda.
    */
-  class ContextRAJAPlugin :
+  class ExecutionContextRAJAPlugin :
     public ::RAJA::util::PluginStrategy
   {
     public:
@@ -39,7 +39,7 @@ namespace chai::expt {
        * \param p RAJA plugin context for the capture.
        */
       void postCapture(const ::RAJA::util::PluginContext& p) override;
-  };  // class ContextRAJAPlugin
-}  // namespace chai::expt
+  };  // class ExecutionContextRAJAPlugin
+}  // namespace chai
 
-#endif // CHAI_CONTEXT_RAJA_PLUGIN_HPP
+#endif // CHAI_EXECUTION_CONTEXT_RAJA_PLUGIN_HPP

@@ -7,13 +7,18 @@
 #ifndef CHAI_pluginLinker_HPP
 #define CHAI_pluginLinker_HPP
 
-#include "chai/RajaExecutionSpacePlugin.hpp"
+#include "chai/ExecutionContextRAJAPlugin.hpp"
+#include "chai/Types.hpp"
+
+namespace chai {
+  CHAISHAREDDLL_API void linkExecutionContextRAJAPlugin();
+}
 
 namespace {
   namespace anonymous_chai {
     struct pluginLinker {
       pluginLinker() {
-        (void) chai::linkRajaPlugin();
+        (void) chai::linkExecutionContextRAJAPlugin();
       }
     } pluginLinker;
   }

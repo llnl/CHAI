@@ -36,6 +36,24 @@ blt_add_test(
   NAME array_manager_unit_test
   COMMAND array_manager_unit_tests)
 
+blt_add_executable(
+  NAME ExecutionContextManagerTests
+  SOURCES ExecutionContextManagerTests.cpp
+  DEPENDS_ON ${chai_unit_test_depends})
+
+blt_add_test(
+  NAME ExecutionContextManagerTests
+  COMMAND ExecutionContextManagerTests)
+
+blt_add_executable(
+  NAME ExecutionContextGuardTests
+  SOURCES ExecutionContextGuardTests.cpp
+  DEPENDS_ON ${chai_unit_test_depends})
+
+blt_add_test(
+  NAME ExecutionContextGuardTests
+  COMMAND ExecutionContextGuardTests)
+
 if (CHAI_ENABLE_MANAGED_PTR)
   blt_add_executable(
     NAME managed_ptr_unit_tests

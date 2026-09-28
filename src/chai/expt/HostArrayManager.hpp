@@ -27,11 +27,11 @@ namespace chai::expt
    *       numeric types will be left in an indeterminate state and nontrivial
    *       types will be default constructed.
    *
-   * \note HostArrayManager does not rely on ContextManager, so it will behave
+   * \note HostArrayManager does not rely on ExecutionContextManager, so it will behave
    *       differently than other array managers. The major difference is that
    *       when used with ManagedArrayPointer, the ManagedArrayPointer does not
    *       need the update method called or to be copy constructed before it can
-   *       be used on the host. Since it will not respect the current Context,
+   *       be used on the host. Since it will not respect the current ExecutionContext,
    *       be extra careful to avoid using it on the device.
    */
   template <typename ElementType>

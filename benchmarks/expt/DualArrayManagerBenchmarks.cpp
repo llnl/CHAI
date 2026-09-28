@@ -9,19 +9,19 @@
 
 #include <cstddef>
 
-#include "chai/expt/ContextGuard.hpp"
+#include "chai/ExecutionContextGuard.hpp"
 #include "chai/expt/DualArrayManager.hpp"
 
 namespace {
-  using ::chai::expt::Context;
-  using ::chai::expt::ContextGuard;
-  using ::chai::expt::ContextManager;
+  using ::chai::ExecutionContext;
+  using ::chai::ExecutionContextGuard;
+  using ::chai::ExecutionContextManager;
   using ::chai::expt::DualArrayManager;
 
   static void DualArrayManager_DataSequence(benchmark::State& state,
-                                            Context initial_context,
+                                            ExecutionContext initial_context,
                                             bool initial_touch,
-                                            Context call_context,
+                                            ExecutionContext call_context,
                                             bool call_touch)
   {
     const auto size = static_cast<std::size_t>(state.range(0));
@@ -30,18 +30,18 @@ namespace {
     {
       state.PauseTiming();
 
-      auto& contextManager = ContextManager::getInstance();
+      auto& contextManager = ExecutionContextManager::getInstance();
       contextManager.reset();
 
       DualArrayManager<int> manager{size};
       {
-        ContextGuard guard{initial_context};
+        ExecutionContextGuard guard{initial_context};
         int* initial_data = manager.data(/*touch=*/initial_touch);
         benchmark::DoNotOptimize(initial_data);
       }
 
       {
-        ContextGuard guard{call_context};
+        ExecutionContextGuard guard{call_context};
         state.ResumeTiming();  // measure only the data() call
         int* data = manager.data(/*touch=*/call_touch);
         benchmark::DoNotOptimize(data);
@@ -85,9 +85,9 @@ namespace {
   static void DualArrayManager_AfterHostRead_DataHostRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::HOST,
+                                  /*initial_context=*/ExecutionContext::HOST,
                                   /*initial_touch=*/false,
-                                  /*call_context=*/Context::HOST,
+                                  /*call_context=*/ExecutionContext::HOST,
                                   /*call_touch=*/false);
   }
 
@@ -100,9 +100,9 @@ namespace {
   static void DualArrayManager_AfterHostWrite_DataHostRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::HOST,
+                                  /*initial_context=*/ExecutionContext::HOST,
                                   /*initial_touch=*/true,
-                                  /*call_context=*/Context::HOST,
+                                  /*call_context=*/ExecutionContext::HOST,
                                   /*call_touch=*/false);
   }
 
@@ -115,9 +115,9 @@ namespace {
   static void DualArrayManager_AfterHostRead_DataDeviceRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::HOST,
+                                  /*initial_context=*/ExecutionContext::HOST,
                                   /*initial_touch=*/false,
-                                  /*call_context=*/Context::DEVICE,
+                                  /*call_context=*/ExecutionContext::DEVICE,
                                   /*call_touch=*/false);
   }
 
@@ -130,9 +130,9 @@ namespace {
   static void DualArrayManager_AfterHostWrite_DataDeviceRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::HOST,
+                                  /*initial_context=*/ExecutionContext::HOST,
                                   /*initial_touch=*/true,
-                                  /*call_context=*/Context::DEVICE,
+                                  /*call_context=*/ExecutionContext::DEVICE,
                                   /*call_touch=*/false);
   }
 
@@ -145,9 +145,9 @@ namespace {
   static void DualArrayManager_AfterDeviceRead_DataHostRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::DEVICE,
+                                  /*initial_context=*/ExecutionContext::DEVICE,
                                   /*initial_touch=*/false,
-                                  /*call_context=*/Context::HOST,
+                                  /*call_context=*/ExecutionContext::HOST,
                                   /*call_touch=*/false);
   }
 
@@ -160,9 +160,9 @@ namespace {
   static void DualArrayManager_AfterDeviceWrite_DataHostRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::DEVICE,
+                                  /*initial_context=*/ExecutionContext::DEVICE,
                                   /*initial_touch=*/true,
-                                  /*call_context=*/Context::HOST,
+                                  /*call_context=*/ExecutionContext::HOST,
                                   /*call_touch=*/false);
   }
 
@@ -175,9 +175,9 @@ namespace {
   static void DualArrayManager_AfterDeviceRead_DataDeviceRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::DEVICE,
+                                  /*initial_context=*/ExecutionContext::DEVICE,
                                   /*initial_touch=*/false,
-                                  /*call_context=*/Context::DEVICE,
+                                  /*call_context=*/ExecutionContext::DEVICE,
                                   /*call_touch=*/false);
   }
 
@@ -190,9 +190,9 @@ namespace {
   static void DualArrayManager_AfterDeviceWrite_DataDeviceRead(benchmark::State& state)
   {
     DualArrayManager_DataSequence(state,
-                                  /*initial_context=*/Context::DEVICE,
+                                  /*initial_context=*/ExecutionContext::DEVICE,
                                   /*initial_touch=*/true,
-                                  /*call_context=*/Context::DEVICE,
+                                  /*call_context=*/ExecutionContext::DEVICE,
                                   /*call_touch=*/false);
   }
 
