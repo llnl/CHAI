@@ -75,6 +75,19 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
     raja-chai-tests
     PUBLIC ${PROJECT_BINARY_DIR}/include)
 
+  blt_add_executable(
+    NAME RajaExecutionSpacePluginTests
+    SOURCES RajaExecutionSpacePluginTests.cpp
+    DEPENDS_ON ${raja_test_depends})
+
+  blt_add_test(
+    NAME RajaExecutionSpacePluginTests
+    COMMAND RajaExecutionSpacePluginTests)
+
+  target_include_directories(
+    RajaExecutionSpacePluginTests
+    PUBLIC ${PROJECT_BINARY_DIR}/include)
+
   if (CHAI_ENABLE_RAJA_NESTED_TEST)
 #raja kernel tests
     blt_add_executable(
