@@ -13,6 +13,12 @@ namespace chai {
 
 class ArrayManager;
 
+/*!
+ * \brief Plugin that sets CHAI manager state from the RAJA execution platform.
+ *
+ * The plugin updates ArrayManager and, when experimental features are enabled,
+ * expt::ContextManager around RAJA lambda capture.
+ */
 class RajaExecutionSpacePlugin :
   public RAJA::util::PluginStrategy
 {

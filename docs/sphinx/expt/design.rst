@@ -67,23 +67,20 @@ the active context and then resets it upon destruction. This is the recommended 
     // Use CHAI data structures in the DEVICE context...
   }
 
------------------
-ContextRAJAPlugin
------------------
+------------------------
+RAJA context integration
+------------------------
 
-In an application that also uses RAJA, CHAI provides a RAJA plugin, `ContextRAJAPlugin`,
-that implicitly manages the context in calls to RAJA. To enable this plugin, configure with
-`-DCHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN=ON` and register the plugin. In the future, registration
-may be handled by CHAI.
+In an application that also uses RAJA, CHAI's ``RajaExecutionSpacePlugin``
+implicitly manages both the ``ArrayManager`` execution space and the experimental
+``ContextManager`` context in calls to RAJA. Configure with
+``-DCHAI_ENABLE_RAJA_PLUGIN=ON`` to enable the plugin. CHAI registers the plugin
+automatically.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
+  #include "chai/expt/ContextManager.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
    
   ::RAJA::forall<::RAJA::seq_exec>(::RAJA::TypedRangeSegment<int>(0, N), [=] (int i) {
     // Use CHAI data structures in the HOST context...
@@ -108,13 +105,8 @@ shallow copies.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
   #include "chai/expt/ManagedArrayPointer.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
 
   // It's recommended to use an alias so that it is easy to swap out the array manager.
   template <typename T>
@@ -151,13 +143,8 @@ counted since clean up cannot be triggered from the device.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
   #include "chai/expt/ManagedArraySharedPointer.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
 
   // It's recommended to use an alias so that it is easy to swap out the array manager.
   template <typename T>
@@ -191,14 +178,9 @@ the view.
 
 .. code-block:: cpp
 
-  #include "chai/expt/ContextRAJAPlugin.hpp"
   #include "chai/expt/ManagedArrayView.hpp"
   #include "chai/expt/UnifiedArrayManager.hpp"
   #include "RAJA/RAJA.hpp"
-
-  static ::RAJA::util::PluginRegistry::add<chai::expt::ContextRAJAPlugin> P(
-    "CHAIContextPlugin",
-    "Plugin that integrates CHAI context management with RAJA.");
 
   // It's recommended to use an alias so that it is easy to swap out the array manager.
   template <typename T>
