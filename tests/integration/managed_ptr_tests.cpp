@@ -876,7 +876,7 @@ public:
    CHAI_HOST_DEVICE virtual ~ABase() {}
    
    // Virtual function to manipulate an array of objects
-   CHAI_HOST_DEVICE virtual void setArrayValues(int size, int value) {
+   CHAI_HOST_DEVICE virtual void setArrayValues(int /* size */, int /* value */) {
       // Base implementation does nothing
    }
    
@@ -924,7 +924,7 @@ TEST(managed_ptr, polymorphic_with_ManagedArray_unpacker)
    
    // Use virtual function to modify array through the member pointer
    const int base_value = 10;
-   forall( sequential(), 0, 1,[=](int i ) {
+   forall( sequential(), 0, 1, [=] (int /* i */) {
       poly_ptr->setArrayValues(size, base_value);
    });
 
