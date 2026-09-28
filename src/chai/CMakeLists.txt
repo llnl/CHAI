@@ -38,6 +38,7 @@ if(CHAI_ENABLE_EXPERIMENTAL)
     expt/Context.hpp
     expt/ContextGuard.hpp
     expt/ContextManager.hpp
+    expt/ContextRAJAPlugin.hpp
     expt/DualArrayManager.hpp
     expt/HostArrayManager.hpp
     expt/HostSharedPointer.hpp
@@ -53,6 +54,7 @@ if(CHAI_ENABLE_EXPERIMENTAL)
 
   set (chai_sources
     ${chai_sources}
+    expt/ContextRAJAPlugin.cpp
     SharedPtrManager.cpp)
 endif()
 
@@ -91,16 +93,6 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
       cuda)
   endif ()
 endif ()
-
-if (CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
-  set (chai_headers
-    ${chai_headers}
-    expt/ContextRAJAPlugin.hpp)
-
-  set (chai_sources
-    ${chai_sources}
-    expt/ContextRAJAPlugin.cpp)
-endif()
 
 blt_add_library(
   NAME chai
