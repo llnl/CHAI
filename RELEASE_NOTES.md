@@ -15,7 +15,7 @@ The format of this file is based on [Keep a Changelog](http://keepachangelog.com
 ## [v2026.07.1] - Release date 2026-10-23
 
 ### Added
-- Added support to `managed_ptr` for using allocators with placement new, which is more efficient.
+- Added `chai::allocate_managed` for using custom allocators and placement new with `chai::managed_ptr`, which is faster.
 - Added `chai::unpack_pointer_table` for creating persistent host/device pointer tables from a `ManagedArray<managed_ptr<T>>`.
 
 ### Changed
