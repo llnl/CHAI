@@ -92,16 +92,6 @@ if (CHAI_ENABLE_RAJA_PLUGIN)
   endif ()
 endif ()
 
-if (CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN)
-  set (chai_headers
-    ${chai_headers}
-    expt/ContextRAJAPlugin.hpp)
-
-  set (chai_sources
-    ${chai_sources}
-    expt/ContextRAJAPlugin.cpp)
-endif()
-
 blt_add_library(
   NAME chai
   SOURCES ${chai_sources}

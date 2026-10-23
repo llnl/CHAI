@@ -53,8 +53,8 @@ ci_registry_image=${CI_REGISTRY_IMAGE:-"czregistry.llnl.gov:5050/radiuss/chai"}
 export ci_registry_user=${CI_REGISTRY_USER:-"${USER}"}
 export ci_registry_token=${CI_JOB_TOKEN:-"${registry_token}"}
 
-raja_version=${UPDATE_RAJA:-""}
-umpire_version=${UPDATE_UMPIRE:-""}
+raja_reference=${RAJA_REFERENCE:-""}
+umpire_reference=${UMPIRE_REFERENCE:-""}
 
 ###############################################################################
 # HELPER FUNCTIONS
@@ -274,15 +274,15 @@ then
     extra_variants=""
     extra_deps=""
 
-    if [[ -n ${raja_version} ]]
+    if [[ -n ${raja_reference} ]]
     then
         extra_variants="${extra_variants} +raja"
-        extra_deps="${extra_deps} ^raja@git.${raja_version}=develop"
+        extra_deps="${extra_deps} ^raja@git.${raja_reference}=develop"
     fi
 
-    if [[ -n ${umpire_version} ]]
+    if [[ -n ${umpire_reference} ]]
     then
-        extra_deps="${extra_deps} ^umpire@git.${umpire_version}=develop"
+        extra_deps="${extra_deps} ^umpire@git.${umpire_reference}=develop"
     fi
 
     [[ -n ${extra_variants} ]] && spec="${spec} ${extra_variants}"

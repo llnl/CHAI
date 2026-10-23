@@ -421,7 +421,8 @@ GPU_TEST(managed_ptr, gpu_build_managed_ptr)
   // Free host side memory
   free(cpuPointerHolder);
 
-  chai::managed_ptr<RawArrayClass> managedPtr({chai::GPU}, {gpuPointer});
+  chai::managed_ptr<RawArrayClass> managedPtr(
+      {chai::GPU}, {gpuPointer}, {chai::delete_on_device_deleter<RawArrayClass>()});
 
   managedPtr.free();
 }
@@ -501,9 +502,14 @@ GPU_TEST(managed_ptr, gpu_class_with_raw_array_and_callback)
      }
   };
 
-  auto managedPointer = chai::managed_ptr<RawArrayClass>({chai::CPU, chai::GPU},
-                                                         {cpuPointer, gpuPointer},
-                                                         callback);
+  auto managedPointer = chai::managed_ptr<RawArrayClass>(
+      {chai::CPU, chai::GPU},
+      {cpuPointer, gpuPointer},
+      {
+          chai::delete_on_host_deleter<RawArrayClass>(),
+          chai::destroy_on_device_deleter<RawArrayClass>()
+      },
+      callback);
 
   chai::ManagedArray<int> results(1, chai::GPU);
 
@@ -870,7 +876,7 @@ public:
    CHAI_HOST_DEVICE virtual ~ABase() {}
    
    // Virtual function to manipulate an array of objects
-   CHAI_HOST_DEVICE virtual void setArrayValues(int size, int value) {
+   CHAI_HOST_DEVICE virtual void setArrayValues(int /* size */, int /* value */) {
       // Base implementation does nothing
    }
    
@@ -918,7 +924,7 @@ TEST(managed_ptr, polymorphic_with_ManagedArray_unpacker)
    
    // Use virtual function to modify array through the member pointer
    const int base_value = 10;
-   forall( sequential(), 0, 1,[=](int i ) {
+   forall( sequential(), 0, 1, [=] (int /* i */) {
       poly_ptr->setArrayValues(size, base_value);
    });
 
@@ -1018,4 +1024,3 @@ TEST(managed_ptr, class_with_raw_array_of_pointers)
 }
 
 #endif
-

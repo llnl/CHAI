@@ -12,7 +12,23 @@ in this file.
 
 The format of this file is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [Version 2026.07.0] - Release date 2025-08-05
+## [v2026.07.1] - Release date 2026-10-23
+
+### Added
+- Added `chai::allocate_managed` for using custom allocators and placement new with `chai::managed_ptr`, which is faster.
+- Added `chai::unpack_pointer_table` for creating persistent host/device pointer tables from a `ManagedArray<managed_ptr<T>>`.
+
+### Changed
+- The `isSlice` function can now be called on `const chai::ManagedArray<T>`.
+- Updated RAJA to v2026.07.1.
+- Updated Umpire to v2026.07.2.
+
+### Experimental
+- Fixed the DualArrayManager.
+- Removed the `CHAI_ENABLE_EXPERIMENTAL_RAJA_PLUGIN` option.
+- The experimental implementation now uses the same RAJA plugin as the mainstream implementation.
+
+## [Version 2026.07.0] - Release date 2025-08-11
 
 ### Changed
 - CHAI now requires C++20 as the minimum C++ standard.

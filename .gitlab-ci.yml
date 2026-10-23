@@ -234,7 +234,7 @@ trigger-care:
   inherit:
     variables: false
   variables:
-    UPDATE_CHAI: ${CI_COMMIT_SHA}
+    CHAI_REFERENCE: ${CI_COMMIT_SHA}
   trigger:
     project: radiuss/multi-project/care-trigger
     branch: develop
