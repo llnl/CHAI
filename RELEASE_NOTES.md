@@ -12,7 +12,7 @@ in this file.
 
 The format of this file is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased] - Release date YYYY-MM-DD
+## [v2026.07.1] - Release date 2026-10-23
 
 ### Added
 - Added `chai::unpack_pointer_table` for creating persistent host/device pointer tables from a `ManagedArray<managed_ptr<T>>`.
