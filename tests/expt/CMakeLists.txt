@@ -114,6 +114,37 @@ blt_add_test(
   NAME HostArraySharedPointerTests
   COMMAND HostArraySharedPointerTests)
 
+if(CHAI_ENABLE_MPI AND UMPIRE_ENABLE_MPI AND
+   (UMPIRE_ENABLE_IPC_SHARED_MEMORY OR UMPIRE_ENABLE_MPI3_SHARED_MEMORY))
+  set(chai_expt_shared_test_depends
+      ${chai_expt_test_depends}
+      mpi)
+
+  blt_add_executable(
+    NAME SharedArrayManagerTests
+    SOURCES SharedArrayManagerTests.cpp
+    HEADERS ${chai_expt_test_headers}
+    INCLUDES ${PROJECT_BINARY_DIR}/include
+    DEPENDS_ON ${chai_expt_shared_test_depends})
+
+  blt_add_test(
+    NAME SharedArrayManagerTests
+    COMMAND SharedArrayManagerTests
+    NUM_MPI_TASKS 1)
+
+  blt_add_executable(
+    NAME SharedArrayManagerMPITests
+    SOURCES SharedArrayManagerMPITests.cpp
+    HEADERS ${chai_expt_test_headers}
+    INCLUDES ${PROJECT_BINARY_DIR}/include
+    DEPENDS_ON ${chai_expt_shared_test_depends})
+
+  blt_add_test(
+    NAME SharedArrayManagerMPITests
+    COMMAND SharedArrayManagerMPITests
+    NUM_MPI_TASKS 2)
+endif()
+
 if(ENABLE_CUDA OR ENABLE_HIP)
   blt_add_executable(
     NAME DualArrayManagerTests

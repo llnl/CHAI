@@ -7,7 +7,7 @@
 option(CHAI_ENABLE_EXPERIMENTAL "Enable experimental chai features." Off)
 option(CHAI_ENABLE_GPU_SIMULATION_MODE "Enable GPU Simulation Mode" Off)
 option(CHAI_ENABLE_OPENMP "Enable OpenMP" Off)
-option(CHAI_ENABLE_MPI "Enable MPI (for umpire replay only)" Off)
+option(CHAI_ENABLE_MPI "Enable MPI support" Off)
 
 option(CHAI_DISABLE_RM "Make ManagedArray a thin wrapper" Off)
 mark_as_advanced(CHAI_DISABLE_RM)

@@ -262,6 +262,83 @@ be extra careful to avoid using it on the device.
   }
 
 ------------------
+SharedArrayManager
+------------------
+
+``SharedArrayManager`` manages a host array in memory shared by processes in
+an MPI sharing scope. This is separate from ``ManagedArraySharedPointer``:
+``SharedArrayManager`` selects where the elements are allocated, while
+``ManagedArraySharedPointer`` provides shared ownership and automatic cleanup
+within each process.
+
+The manager uses Umpire's ``SHARED`` resources and supports both POSIX and
+MPI3 shared-memory allocators. By default it uses the global ``SHARED``
+allocator and ``MPI_COMM_WORLD``. An allocator can also be supplied explicitly;
+for POSIX resources, an optional parent communicator controls how Umpire
+derives the node-local sharing communicator. MPI3 resources use the
+communicator owned by the allocator.
+
+.. code-block:: cpp
+
+  #include "chai/expt/ManagedArrayPointer.hpp"
+  #include "chai/expt/SharedArrayManager.hpp"
+
+  template <typename T>
+  using SharedArrayManager = ::chai::expt::SharedArrayManager<T>;
+
+  template <typename T>
+  using SharedArrayPointer =
+    ::chai::expt::ManagedArrayPointer<T, SharedArrayManager<T>>;
+
+  // Every rank in the sharing communicator performs these calls in the same
+  // order. The returned pointer is the rank's local mapping of shared storage.
+  SharedArrayPointer<int> a = SharedArrayPointer<int>::make(1024);
+  int* data = a.data();
+
+  int shared_rank = 0;
+  MPI_Comm shared_comm = ::umpire::get_communicator_for_allocator(
+    ::umpire::ResourceManager::getInstance().getAllocator("SHARED"),
+    MPI_COMM_WORLD);
+  MPI_Comm_rank(shared_comm, &shared_rank);
+
+  if (shared_rank == 0) {
+    data[0] = 42;
+  }
+
+  // data() and update() synchronize before returning on the host.
+  a.update();
+  // Every rank can now read a[0].
+
+  a.free();
+  ::umpire::cleanup_cached_communicators();
+
+Construction, manager copying, resizing, ``data()``, and destruction of an
+allocated manager are collective. Wrapper copy constructors that call
+``update()`` are therefore also collective. All participating ranks must make
+these calls in the same order; calling them on only some ranks can deadlock.
+``size()`` and access through a cached pointer or ``operator[]`` do not
+synchronize. Direct manager users can call ``synchronize()`` explicitly.
+
+Manager copies are deep: each copy receives a distinct shared allocation.
+Copies of ``ManagedArrayPointer``, ``ManagedArraySharedPointer``, and
+``ManagedArrayView`` retain their documented shallow semantics. Resizing
+preserves the existing prefix, but newly allocated and newly grown elements
+are left uninitialized. Element types must be trivially copyable, default
+constructible, and trivially destructible.
+
+The default Umpire shared resource has a capacity of 16 MiB. Applications that
+need more capacity should create a ``SHARED::POSIX`` or ``SHARED::MPI3``
+resource with larger traits and pass that allocator to the manager. The
+manager supplies allocation names automatically, including for raw POSIX
+allocators.
+
+``SharedArrayManager`` borrows the communicator returned by Umpire. Destroy all
+managers before calling ``umpire::cleanup_cached_communicators()``, and perform
+that cleanup before ``MPI_Finalize()``. Umpire caches POSIX communicators by
+allocator ID, so use a consistent parent communicator for a given POSIX
+allocator.
+
+------------------
 UnifiedArrayManager
 ------------------
 

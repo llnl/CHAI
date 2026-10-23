@@ -51,6 +51,13 @@ if(CHAI_ENABLE_EXPERIMENTAL)
     SharedPtrManager.inl
     SharedPointerRecord.hpp)
 
+  if(CHAI_ENABLE_MPI AND UMPIRE_ENABLE_MPI AND
+     (UMPIRE_ENABLE_IPC_SHARED_MEMORY OR UMPIRE_ENABLE_MPI3_SHARED_MEMORY))
+    set(chai_headers
+      ${chai_headers}
+      expt/SharedArrayManager.hpp)
+  endif()
+
   set (chai_sources
     ${chai_sources}
     SharedPtrManager.cpp)
@@ -58,6 +65,13 @@ endif()
 
 set (chai_depends
   ${CHAI_UMPIRE_TARGET})
+
+if(CHAI_ENABLE_EXPERIMENTAL AND CHAI_ENABLE_MPI AND UMPIRE_ENABLE_MPI AND
+   (UMPIRE_ENABLE_IPC_SHARED_MEMORY OR UMPIRE_ENABLE_MPI3_SHARED_MEMORY))
+  set(chai_depends
+    ${chai_depends}
+    mpi)
+endif()
 
 if (CHAI_ENABLE_CUDA)
   set (chai_depends
@@ -109,6 +123,11 @@ blt_add_library(
   DEPENDS_ON ${chai_depends})
 
 install(FILES ${chai_headers} DESTINATION include/chai/)
+
+if(CHAI_ENABLE_EXPERIMENTAL AND CHAI_ENABLE_MPI AND UMPIRE_ENABLE_MPI AND
+   (UMPIRE_ENABLE_IPC_SHARED_MEMORY OR UMPIRE_ENABLE_MPI3_SHARED_MEMORY))
+  install(FILES expt/SharedArrayManager.hpp DESTINATION include/chai/expt/)
+endif()
 
 install(FILES ../util/forall.hpp DESTINATION include/chai/util/)
 

@@ -9,6 +9,7 @@
 
 #cmakedefine CHAI_ENABLE_CUDA 
 #cmakedefine CHAI_ENABLE_HIP 
+#cmakedefine CHAI_ENABLE_MPI
 #cmakedefine CHAI_DISABLE_RM
 #cmakedefine CHAI_THIN_GPU_ALLOCATE
 #cmakedefine CHAI_ENABLE_UM
