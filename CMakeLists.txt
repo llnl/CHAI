@@ -15,7 +15,7 @@ cmake_policy(SET CMP0096 OLD) # Drops leading zeros in version numbers
 include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
 
-project(Chai LANGUAGES C CXX VERSION 2026.07.0)
+project(Chai LANGUAGES C CXX VERSION 2026.07.1)
 
 include(cmake/SetupChaiOptions.cmake)
 
