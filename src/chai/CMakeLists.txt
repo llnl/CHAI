@@ -20,6 +20,8 @@ set (chai_headers
   ManagedArray.hpp
   ManagedArray.inl
   managed_ptr.hpp
+  PinnedArray.hpp
+  PinnedPlugin.hpp
   PointerRecord.hpp
   Types.hpp)
 
