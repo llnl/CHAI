@@ -20,7 +20,8 @@
 clang_18_1_8_gcc_13_cuda_12_6_0:
   extends: .job_on_matrix
   variables:
-    SPEC: " ~shared +raja tests=basic +cuda cuda_arch=90 %clang-18-gcc-13 ^cuda@12.6.0+allow-unsupported-compilers ^raja~examples~exercises cxxstd=20 ^fmt@12.1.0"
+    RADIUSS_SPACK_STACK: "clang-18.1.8-gcc-13.3.1-mvapich2-2.3.7.gcc_13-cuda-12.6.0"
+    SPEC: " ~shared +raja tests=basic +cuda ^raja~examples~exercises cxxstd=20 ^fmt@12.1.0"
   allow_failure: true
 
 ############
